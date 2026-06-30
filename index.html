@@ -190,6 +190,30 @@ textarea.form-input{resize:vertical;min-height:72px;line-height:1.6;}
 .form-sec{margin:18px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border);font-size:.7rem;font-weight:bold;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
 .btn-cancel{padding:7px 16px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:.8rem;font-weight:bold;color:var(--sub);cursor:pointer;transition:.15s;}
 .btn-cancel:hover{border-color:var(--text);color:var(--text);}
+
+/* CARD IMAGE UPLOAD */
+.card-upload{border:2px dashed var(--border);border-radius:10px;padding:20px 16px;text-align:center;cursor:pointer;transition:.15s;background:var(--bg);}
+.card-upload:hover,.card-upload.drag{border-color:var(--blue);background:var(--blue-bg);}
+.card-upload input{display:none;}
+.card-upload-icon{font-size:1.6rem;margin-bottom:6px;}
+.card-upload-txt{font-size:.75rem;color:var(--muted);line-height:1.5;}
+.card-upload-txt strong{color:var(--blue);}
+.card-preview-wrap{margin-top:10px;display:none;position:relative;}
+.card-preview-wrap.show{display:block;}
+.card-preview-wrap img{width:100%;border-radius:8px;border:1px solid var(--border);display:block;}
+.card-preview-clear{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;border:none;cursor:pointer;font-size:.8rem;display:flex;align-items:center;justify-content:center;line-height:1;}
+
+/* CARD IMAGE IN PANEL */
+.card-img-panel{border-radius:10px;overflow:hidden;border:1px solid var(--border);cursor:zoom-in;}
+.card-img-panel img{width:100%;display:block;transition:.15s;}
+.card-img-panel img:hover{opacity:.88;}
+
+/* LIGHTBOX */
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:none;align-items:center;justify-content:center;cursor:zoom-out;}
+.lightbox.show{display:flex;}
+.lightbox img{max-width:90vw;max-height:88vh;border-radius:10px;box-shadow:0 8px 48px rgba(0,0,0,.5);}
+.lightbox-close{position:fixed;top:18px;right:22px;color:#fff;font-size:1.6rem;background:none;border:none;cursor:pointer;opacity:.7;line-height:1;}
+.lightbox-close:hover{opacity:1;}
 </style>
 </head>
 <body>
@@ -809,7 +833,24 @@ textarea.form-input{resize:vertical;min-height:72px;line-height:1.6;}
 
         <!-- ─── イベント専用 ─── -->
         <div id="af-sec-event" style="display:none">
-            <div class="form-sec">担当者情報（名刺）</div>
+            <div class="form-sec">名刺画像</div>
+            <div class="form-grid full">
+                <div class="form-group">
+                    <div class="card-upload" id="cardUploadZone" onclick="document.getElementById('af-card-file').click()"
+                         ondragover="e=>{e.preventDefault();this.classList.add('drag')}"
+                         ondragleave="this.classList.remove('drag')"
+                         ondrop="handleCardDrop(event)">
+                        <input type="file" id="af-card-file" accept="image/*" onchange="handleCardFile(this.files[0])">
+                        <div class="card-upload-icon">&#x1F4F7;</div>
+                        <div class="card-upload-txt"><strong>クリックまたはドラッグ</strong>して名刺画像をアップロード<br>JPG / PNG / HEIC 対応</div>
+                    </div>
+                    <div class="card-preview-wrap" id="cardPreviewWrap">
+                        <img id="cardPreviewImg" src="" alt="名刺プレビュー">
+                        <button class="card-preview-clear" onclick="clearCardImage(event)" title="削除">✕</button>
+                    </div>
+                </div>
+            </div>
+            <div class="form-sec">担当者情報（名刺から転記）</div>
             <div class="form-grid">
                 <div class="form-group">
                     <label class="form-label">氏名</label>
@@ -844,6 +885,12 @@ textarea.form-input{resize:vertical;min-height:72px;line-height:1.6;}
         <button class="btn btn-p" onclick="submitAddForm()">追加する</button>
     </div>
 </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+    <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+    <img id="lightboxImg" src="" alt="名刺">
 </div>
 
 <!-- OVERLAY + PANEL -->
@@ -1012,6 +1059,14 @@ function openP(id){
             <div class="p-row"><div class="p-k">導入時期</div><div class="p-v">${r.timing||'—'}</div></div>
             <div class="p-row"><div class="p-k">決済権</div><div class="p-v">${r.decision||'—'}</div></div>
             <div class="p-row"><div class="p-k">フォロー</div><div class="p-v">${r.follow||'—'}</div></div>
+        </div>`;
+    }
+    if(r.src==='event' && r.cardImage){
+        h+=`<div class="p-sec"><div class="p-sec-t">名刺画像</div>
+            <div class="card-img-panel" onclick="openLightbox('${r.cardImage}')">
+                <img src="${r.cardImage}" alt="名刺">
+            </div>
+            <div style="font-size:.65rem;color:var(--muted);margin-top:5px;text-align:center;">クリックで拡大</div>
         </div>`;
     }
     h+=`<div class="p-sec"><div class="p-sec-t">メモ</div><div class="p-memo">${r.memo||'なし'}</div></div>`;
@@ -1248,6 +1303,49 @@ function renderReport(){
     });
 }
 
+// ━━ LIGHTBOX ━━
+function openLightbox(src){
+    document.getElementById('lightboxImg').src = src;
+    document.getElementById('lightbox').classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+function closeLightbox(){
+    document.getElementById('lightbox').classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+// ━━ CARD IMAGE ━━
+let cardImageData = null;
+
+function handleCardFile(file){
+    if(!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => setCardPreview(e.target.result);
+    reader.readAsDataURL(file);
+    document.getElementById('cardUploadZone').classList.remove('drag');
+}
+
+function handleCardDrop(e){
+    e.preventDefault();
+    document.getElementById('cardUploadZone').classList.remove('drag');
+    const file = e.dataTransfer.files[0];
+    handleCardFile(file);
+}
+
+function setCardPreview(dataUrl){
+    cardImageData = dataUrl;
+    document.getElementById('cardPreviewImg').src = dataUrl;
+    document.getElementById('cardPreviewWrap').classList.add('show');
+}
+
+function clearCardImage(e){
+    e.stopPropagation();
+    cardImageData = null;
+    document.getElementById('cardPreviewImg').src = '';
+    document.getElementById('cardPreviewWrap').classList.remove('show');
+    document.getElementById('af-card-file').value = '';
+}
+
 // ━━ ADD MODAL ━━
 let addSrc = 'accel';
 
@@ -1297,6 +1395,10 @@ function resetAddForm(){
      'af-name2-expo','af-role2-expo','af-dept-expo','af-contact-expo','af-needs',
      'af-name2-event','af-role2-event','af-dept-event','af-contact-event'
     ].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    cardImageData = null;
+    document.getElementById('cardPreviewImg').src = '';
+    document.getElementById('cardPreviewWrap').classList.remove('show');
+    document.getElementById('af-card-file').value = '';
     document.querySelectorAll('.form-input.err').forEach(el=>el.classList.remove('err'));
     // reset selects to default
     document.getElementById('af-prio').value = '中';
@@ -1390,10 +1492,11 @@ function submitAddForm(){
         });
     } else {
         Object.assign(base, {
-            name2:   document.getElementById('af-name2-event').value.trim() || null,
-            role2:   document.getElementById('af-role2-event').value.trim() || null,
-            dept:    document.getElementById('af-dept-event').value.trim() || null,
-            contact: document.getElementById('af-contact-event').value.trim() || '—',
+            name2:     document.getElementById('af-name2-event').value.trim() || null,
+            role2:     document.getElementById('af-role2-event').value.trim() || null,
+            dept:      document.getElementById('af-dept-event').value.trim() || null,
+            contact:   document.getElementById('af-contact-event').value.trim() || '—',
+            cardImage: cardImageData || null,
         });
     }
 
