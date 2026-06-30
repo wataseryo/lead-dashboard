@@ -57,7 +57,7 @@ body{font-family:'Hiragino Kaku Gothic ProN','メイリオ',sans-serif;backgroun
 /* FILTERS */
 .filter-area{padding:14px 24px;background:var(--white);border-bottom:1px solid var(--border);margin-top:1px;}
 .filter-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
-.filter-row:last-child{margin-bottom:0;}
+.filter-area>.filter-row:last-of-type{margin-bottom:0;}
 .fl{font-size:.68rem;font-weight:bold;color:var(--sub);white-space:nowrap;min-width:56px;}
 .fp{display:flex;gap:5px;flex-wrap:wrap;}
 .fb{padding:4px 11px;border-radius:100px;border:1px solid var(--border);background:var(--white);font-size:.72rem;cursor:pointer;transition:.15s;font-weight:600;color:var(--sub);}
@@ -179,15 +179,15 @@ td{padding:11px 14px;vertical-align:middle;}
         <div class="s-item" onclick="switchView('report',this)">レポート</div>
         <div class="s-item" onclick="switchView('calendar',this)">〆切カレンダー</div>
     </nav>
-    <div class="s-foot"><div class="s-sync">Lark Base 連携中</div></div>
+    <div class="s-foot"><div class="s-sync"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#10B981;margin-right:5px;vertical-align:middle;"></span>Lark Base 連携中</div></div>
 </aside>
 
 <!-- MAIN -->
 <div class="main">
 <header class="header">
     <div class="h-title" id="pageTitle">全リード一覧</div>
-    <div class="h-search" id="searchBox"><span style="color:var(--muted)"></span><input type="text" placeholder="企業名・担当者・氏名で検索..." id="q" oninput="render()"></div>
-    <button class="btn btn-p">＋ 追加</button>
+    <div class="h-search" id="searchBox"><span style="color:var(--muted);font-size:.85rem;">&#x1F50D;</span><input type="text" placeholder="企業名・担当者・氏名で検索..." id="q" oninput="render()"></div>
+    <button class="btn btn-p" onclick="alert('この機能は実装予定です。現在はLark Baseから直接追加してください。')">＋ 追加</button>
 </header>
 
 <!-- ═══════════════════════════════════════════════
@@ -387,7 +387,7 @@ td{padding:11px 14px;vertical-align:middle;}
         <div class="kc">
             <div class="kc-l">今月〆切</div>
             <div class="kc-n" id="ac-k3" style="color:var(--red)">—<small>件</small></div>
-            <div class="kc-f"><div class="dot" style="background:var(--red)"></div>2026年6月</div>
+            <div class="kc-f"><div class="dot" style="background:var(--red)"></div><span id="ac-k3-label">今月</span></div>
         </div>
     </div>
     <div class="board-body">
@@ -572,7 +572,7 @@ td{padding:11px 14px;vertical-align:middle;}
 ════════════════════════════════════════════════ -->
 <div id="view-calendar" class="view">
     <div class="placeholder-body">
-        <div class="placeholder-icon"></div>
+        <div class="placeholder-icon" style="color:var(--muted)">&#x1F4C5;</div>
         <div class="placeholder-title">〆切カレンダー</div>
         <div class="placeholder-sub">このビューは近日公開予定です。</div>
     </div>
@@ -838,11 +838,15 @@ function initAccelCharts(){
     // KPIs
     const inProgress = ac.filter(d=>['応募中','審査中','準備中'].includes(d.status)).length;
     const adopted    = ac.filter(d=>d.status==='完了').length;
-    const thisMonth  = ac.filter(d=>d.date&&d.date.startsWith('2026-06')).length;
+    const now = new Date();
+    const ym = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+    const ymLabel = now.getFullYear()+'年'+(now.getMonth()+1)+'月';
+    const thisMonth  = ac.filter(d=>d.date&&d.date.startsWith(ym)).length;
     document.getElementById('ac-k0').innerHTML = ac.length+'<small>件</small>';
     document.getElementById('ac-k1').innerHTML = inProgress+'<small>件</small>';
     document.getElementById('ac-k2').innerHTML = adopted+'<small>件</small>';
     document.getElementById('ac-k3').innerHTML = thisMonth+'<small>件</small>';
+    document.getElementById('ac-k3-label').textContent = ymLabel;
 
     // Chart 1: 案件状態 (pie)
     new Chart(document.getElementById('ch-accel-status'), {
