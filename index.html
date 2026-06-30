@@ -171,22 +171,22 @@ td{padding:11px 14px;vertical-align:middle;}
     <div class="s-logo"><div><div class="s-logo-t">Lead Hub</div><div class="s-logo-s">統合リード管理</div></div></div>
     <nav class="s-nav">
         <div class="s-lbl">ビュー</div>
-        <div class="s-item on" onclick="switchView('list',this)">📋 全リード一覧</div>
-        <div class="s-item" onclick="switchView('accel',this)">🚀 アクセラ</div>
-        <div class="s-item" onclick="switchView('expo',this)">🎪 展示会</div>
-        <div class="s-item" onclick="switchView('event',this)">📅 イベント</div>
+        <div class="s-item on" onclick="switchView('list',this)">全リード一覧</div>
+        <div class="s-item" onclick="switchView('accel',this)">アクセラ</div>
+        <div class="s-item" onclick="switchView('expo',this)">展示会</div>
+        <div class="s-item" onclick="switchView('event',this)">イベント</div>
         <div class="s-lbl">分析</div>
-        <div class="s-item" onclick="switchView('report',this)">📊 レポート</div>
-        <div class="s-item" onclick="switchView('calendar',this)">📆 〆切カレンダー</div>
+        <div class="s-item" onclick="switchView('report',this)">レポート</div>
+        <div class="s-item" onclick="switchView('calendar',this)">〆切カレンダー</div>
     </nav>
-    <div class="s-foot"><div class="s-sync">🔄 Lark Base 連携中</div></div>
+    <div class="s-foot"><div class="s-sync">Lark Base 連携中</div></div>
 </aside>
 
 <!-- MAIN -->
 <div class="main">
 <header class="header">
     <div class="h-title" id="pageTitle">全リード一覧</div>
-    <div class="h-search" id="searchBox"><span style="color:var(--muted)">🔍</span><input type="text" placeholder="企業名・担当者・氏名で検索..." id="q" oninput="render()"></div>
+    <div class="h-search" id="searchBox"><span style="color:var(--muted)"></span><input type="text" placeholder="企業名・担当者・氏名で検索..." id="q" oninput="render()"></div>
     <button class="btn btn-p">＋ 追加</button>
 </header>
 
@@ -210,18 +210,18 @@ td{padding:11px 14px;vertical-align:middle;}
         <div class="fl">ソース</div>
         <div class="fp" id="f-source">
             <button class="fb on" data-v="all" onclick="setF('source',this)">すべて</button>
-            <button class="fb" data-v="accel" onclick="setF('source',this)">🚀 アクセラ</button>
-            <button class="fb" data-v="expo" onclick="setF('source',this)">🎪 展示会</button>
-            <button class="fb" data-v="event" onclick="setF('source',this)">📅 イベント</button>
+            <button class="fb" data-v="accel" onclick="setF('source',this)">アクセラ</button>
+            <button class="fb" data-v="expo" onclick="setF('source',this)">展示会</button>
+            <button class="fb" data-v="event" onclick="setF('source',this)">イベント</button>
         </div>
     </div>
     <div class="filter-row">
         <div class="fl">優先度</div>
         <div class="fp" id="f-prio">
             <button class="fb on" data-v="all" onclick="setF('prio',this)">すべて</button>
-            <button class="fb" data-v="高" onclick="setF('prio',this)">🔴 高</button>
-            <button class="fb" data-v="中" onclick="setF('prio',this)">🟡 中</button>
-            <button class="fb" data-v="低" onclick="setF('prio',this)">⚪ 低</button>
+            <button class="fb" data-v="高" onclick="setF('prio',this)">高</button>
+            <button class="fb" data-v="中" onclick="setF('prio',this)">中</button>
+            <button class="fb" data-v="低" onclick="setF('prio',this)">低</button>
         </div>
     </div>
     <div class="filter-row">
@@ -256,7 +256,7 @@ td{padding:11px 14px;vertical-align:middle;}
     <div class="filter-extra" id="filterExtra">
         <div class="filter-extra-grid">
             <div class="fe-group">
-                <div class="fe-label">🎪 展示会名</div>
+                <div class="fe-label">展示会名</div>
                 <div class="fe-pills" id="f-expo">
                     <button class="fb on" data-v="all" onclick="setF('expo',this)">すべて</button>
                     <button class="fb" data-v="Japan IT Week" onclick="setF('expo',this)">Japan IT Week</button>
@@ -265,7 +265,7 @@ td{padding:11px 14px;vertical-align:middle;}
                 </div>
             </div>
             <div class="fe-group">
-                <div class="fe-label">🎪 業種</div>
+                <div class="fe-label">業種</div>
                 <div class="fe-pills" id="f-industry">
                     <button class="fb on" data-v="all" onclick="setF('industry',this)">すべて</button>
                     <button class="fb" data-v="IT・SaaS" onclick="setF('industry',this)">IT・SaaS</button>
@@ -276,7 +276,7 @@ td{padding:11px 14px;vertical-align:middle;}
                 </div>
             </div>
             <div class="fe-group">
-                <div class="fe-label">🎪 フォロー状況</div>
+                <div class="fe-label">フォロー状況</div>
                 <div class="fe-pills" id="f-follow">
                     <button class="fb on" data-v="all" onclick="setF('follow',this)">すべて</button>
                     <button class="fb" data-v="送付済み" onclick="setF('follow',this)">送付済み</button>
@@ -286,7 +286,7 @@ td{padding:11px 14px;vertical-align:middle;}
                 </div>
             </div>
             <div class="fe-group">
-                <div class="fe-label">🎪 決済権</div>
+                <div class="fe-label">決済権</div>
                 <div class="fe-pills" id="f-decision">
                     <button class="fb on" data-v="all" onclick="setF('decision',this)">すべて</button>
                     <button class="fb" data-v="あり" onclick="setF('decision',this)">あり</button>
@@ -295,7 +295,7 @@ td{padding:11px 14px;vertical-align:middle;}
                 </div>
             </div>
             <div class="fe-group">
-                <div class="fe-label">🎪 予算規模</div>
+                <div class="fe-label">予算規模</div>
                 <div class="fe-pills" id="f-budget">
                     <button class="fb on" data-v="all" onclick="setF('budget',this)">すべて</button>
                     <button class="fb" data-v="〜100万" onclick="setF('budget',this)">〜100万</button>
@@ -305,7 +305,7 @@ td{padding:11px 14px;vertical-align:middle;}
                 </div>
             </div>
             <div class="fe-group">
-                <div class="fe-label">🚀 フェーズ</div>
+                <div class="fe-label">フェーズ</div>
                 <div class="fe-pills" id="f-phase">
                     <button class="fb on" data-v="all" onclick="setF('phase',this)">すべて</button>
                     <button class="fb" data-v="情報収集" onclick="setF('phase',this)">情報収集</button>
@@ -315,7 +315,7 @@ td{padding:11px 14px;vertical-align:middle;}
                 </div>
             </div>
             <div class="fe-group">
-                <div class="fe-label">🚀 Quarter</div>
+                <div class="fe-label">Quarter</div>
                 <div class="fe-pills" id="f-quarter">
                     <button class="fb on" data-v="all" onclick="setF('quarter',this)">すべて</button>
                     <button class="fb" data-v="Q1" onclick="setF('quarter',this)">Q1</button>
@@ -325,7 +325,7 @@ td{padding:11px 14px;vertical-align:middle;}
                 </div>
             </div>
             <div class="fe-group">
-                <div class="fe-label">🎪 導入時期</div>
+                <div class="fe-label">導入時期</div>
                 <div class="fe-pills" id="f-timing">
                     <button class="fb on" data-v="all" onclick="setF('timing',this)">すべて</button>
                     <button class="fb" data-v="即時" onclick="setF('timing',this)">即時</button>
@@ -526,17 +526,17 @@ td{padding:11px 14px;vertical-align:middle;}
         <div class="report-section-title" style="margin-top:8px;">ソース別内訳</div>
         <div class="report-grid">
             <div class="report-card">
-                <div class="report-card-title">🚀 アクセラ</div>
+                <div class="report-card-title">アクセラ</div>
                 <div class="report-stat" id="rp-accel" style="color:var(--blue)">—</div>
                 <div class="report-sub" id="rp-accel-sub">—</div>
             </div>
             <div class="report-card">
-                <div class="report-card-title">🎪 展示会</div>
+                <div class="report-card-title">展示会</div>
                 <div class="report-stat" id="rp-expo" style="color:#92400E">—</div>
                 <div class="report-sub" id="rp-expo-sub">—</div>
             </div>
             <div class="report-card">
-                <div class="report-card-title">📅 イベント</div>
+                <div class="report-card-title">イベント</div>
                 <div class="report-stat" id="rp-event" style="color:var(--green)">—</div>
                 <div class="report-sub" id="rp-event-sub">—</div>
             </div>
@@ -572,7 +572,7 @@ td{padding:11px 14px;vertical-align:middle;}
 ════════════════════════════════════════════════ -->
 <div id="view-calendar" class="view">
     <div class="placeholder-body">
-        <div class="placeholder-icon">📆</div>
+        <div class="placeholder-icon"></div>
         <div class="placeholder-title">〆切カレンダー</div>
         <div class="placeholder-sub">このビューは近日公開予定です。</div>
     </div>
@@ -630,7 +630,7 @@ function toggleExtra(){
     ic.textContent=el.classList.contains('open')?'−':'＋';
 }
 
-const fLabels={source:{accel:'🚀アクセラ',expo:'🎪展示会',event:'📅イベント'},prio:{高:'優先度:高',中:'優先度:中',低:'優先度:低'},status:'ステータス:',person:'担当者:',expo:'展示会:',industry:'業種:',follow:'フォロー:',decision:'決済権:',budget:'予算:',phase:'フェーズ:',quarter:'Quarter:',timing:'導入時期:'};
+const fLabels={source:{accel:'アクセラ',expo:'展示会',event:'イベント'},prio:{高:'優先度:高',中:'優先度:中',低:'優先度:低'},status:'ステータス:',person:'担当者:',expo:'展示会:',industry:'業種:',follow:'フォロー:',decision:'決済権:',budget:'予算:',phase:'フェーズ:',quarter:'Quarter:',timing:'導入時期:'};
 
 function updateChips(){
     const c=document.getElementById('activeChips');
@@ -654,7 +654,7 @@ function clearF(key){
 // ━━ RENDER (list view) ━━
 let selId=null;
 const srcBadge={accel:'badge b-ac',expo:'badge b-ex',event:'badge b-ev'};
-const srcLabel={accel:'🚀 アクセラ',expo:'🎪 展示会',event:'📅 イベント'};
+const srcLabel={accel:'アクセラ',expo:'展示会',event:'イベント'};
 const prioClass={高:'badge p-high',中:'badge p-mid',低:'badge p-low'};
 const stClass=(s)=>({
     '応募中':'st s-act','フォロー中':'st s-act','審査中':'st s-rev',
