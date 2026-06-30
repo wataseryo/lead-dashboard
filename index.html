@@ -232,7 +232,7 @@ textarea.form-input{resize:vertical;min-height:72px;line-height:1.6;}
         <div class="s-item" onclick="switchView('report',this)">レポート</div>
         <div class="s-item" onclick="switchView('calendar',this)">〆切カレンダー</div>
     </nav>
-    <div class="s-foot"><div class="s-sync"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#10B981;margin-right:5px;vertical-align:middle;"></span>Lark Base 連携中</div></div>
+    <div class="s-foot"><div class="s-sync"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#10B981;margin-right:5px;vertical-align:middle;"></span>ローカル保存中（Lark連携準備中）</div></div>
 </aside>
 
 <!-- MAIN -->
@@ -404,14 +404,14 @@ textarea.form-input{resize:vertical;min-height:72px;line-height:1.6;}
     </div>
     <table>
         <thead><tr>
-            <th>企業名 / 案件名</th>
+            <th onclick="setSort('name')">企業名 / 案件名 <span id="sh-name"></span></th>
             <th>ソース</th>
-            <th>氏名（担当者）</th>
-            <th>社内担当</th>
+            <th onclick="setSort('name2')">氏名（担当者）<span id="sh-name2"></span></th>
+            <th onclick="setSort('person')">社内担当 <span id="sh-person"></span></th>
             <th>ステータス</th>
-            <th>優先度</th>
+            <th onclick="setSort('prio')">優先度 <span id="sh-prio"></span></th>
             <th>フェーズ / 進捗</th>
-            <th>日付 / 〆切</th>
+            <th onclick="setSort('date')">日付 / 〆切 <span id="sh-date"></span></th>
         </tr></thead>
         <tbody id="tbody"></tbody>
     </table>
@@ -848,7 +848,7 @@ textarea.form-input{resize:vertical;min-height:72px;line-height:1.6;}
             <div class="form-grid full">
                 <div class="form-group">
                     <div class="card-upload" id="cardUploadZone" onclick="document.getElementById('af-card-file').click()"
-                         ondragover="e=>{e.preventDefault();this.classList.add('drag')}"
+                         ondragover="handleCardDragOver(event)"
                          ondragleave="this.classList.remove('drag')"
                          ondrop="handleCardDrop(event)">
                         <input type="file" id="af-card-file" accept="image/*" onchange="handleCardFile(this.files[0])">
@@ -892,8 +892,10 @@ textarea.form-input{resize:vertical;min-height:72px;line-height:1.6;}
 
     </div><!-- /modal-body -->
     <div class="modal-foot">
+        <button id="deleteBtn" class="btn-cancel" onclick="deleteCurrentLead()" style="display:none;color:var(--red);border-color:var(--red);">削除</button>
+        <div style="flex:1"></div>
         <button class="btn-cancel" onclick="closeAddModal()">キャンセル</button>
-        <button class="btn btn-p" onclick="submitAddForm()">追加する</button>
+        <button class="btn btn-p" id="submitBtn" onclick="submitAddForm()">追加する</button>
     </div>
 </div>
 </div>
@@ -912,7 +914,10 @@ textarea.form-input{resize:vertical;min-height:72px;line-height:1.6;}
 </div>
 
 <script>
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
 // ━━ DATA ━━
+// ダミーデータ（初回のみ使用）
 const DATA = [
     // アクセラ
     {id:1,name:'IPA 未踏アドバンスト2026',company:'IPA（情報処理推進機構）',src:'accel',person:'田中',role:'AE',status:'応募中',stage:'提出済',prio:'高',date:'2026-07-15',memo:'提案資料の最終確認が必要。早期〆切に注意。',phase:'書類選考',quarter:'Q3',amount:'最大500万円',value:'技術認定＋資金',efficiency:'高',contact:'—'},
@@ -936,8 +941,23 @@ const DATA = [
     {id:15,name:'合同会社ビズパートナー',company:'合同会社ビズパートナー',src:'event',person:'佐藤',role:'担当',status:'新規',prio:'低',date:'2026-06-12',memo:'懇親会で名刺交換のみ。フォロー検討中。',contact:'—',name2:'井上 恵子',dept:'営業部',role2:'部長'},
 ];
 
+// ━━ STORAGE ━━
+function saveToStorage(){ try{ localStorage.setItem('lead_hub_data', JSON.stringify(DATA)); }catch(e){} }
+function loadFromStorage(){
+    try{
+        const s = localStorage.getItem('lead_hub_data');
+        if(s){ const d=JSON.parse(s); DATA.splice(0,DATA.length,...d); }
+    }catch(e){}
+}
+loadFromStorage();
+
 // ━━ FILTER STATE ━━
 const F = {source:'all',prio:'all',status:[],person:'all',expo:'all',industry:'all',follow:'all',decision:'all',budget:'all',phase:'all',quarter:'all',timing:'all'};
+let sortKey = null, sortDir = 1;
+function setSort(key){
+    if(sortKey===key) sortDir*=-1; else { sortKey=key; sortDir=1; }
+    render();
+}
 
 function setF(key, btn){
     F[key] = btn.dataset.v;
@@ -1035,23 +1055,37 @@ function render(){
         if(q&&![r.name,r.company,r.person,r.name2||''].some(s=>s.toLowerCase().includes(q))) return false;
         return true;
     });
+    // ソート
+    const PRIO_ORDER = {'高':0,'中':1,'低':2};
+    if(sortKey){
+        rows.sort((a,b)=>{
+            let av = a[sortKey]||'', bv = b[sortKey]||'';
+            if(sortKey==='prio'){ av=PRIO_ORDER[av]??9; bv=PRIO_ORDER[bv]??9; return (av-bv)*sortDir; }
+            return String(av).localeCompare(String(bv),'ja')*sortDir;
+        });
+    }
+    // ソートインジケーター更新
+    ['name','name2','person','prio','date'].forEach(k=>{
+        const el = document.getElementById('sh-'+k);
+        if(el) el.textContent = sortKey===k ? (sortDir===1?' ▲':' ▼') : '';
+    });
     document.getElementById('cnt').textContent=rows.length;
-    document.getElementById('k0').innerHTML=DATA.length+'<small>件</small>';
-    document.getElementById('k1').innerHTML=DATA.filter(d=>d.src==='accel').length+'<small>件</small>';
-    document.getElementById('k2').innerHTML=DATA.filter(d=>d.src==='expo').length+'<small>件</small>';
-    document.getElementById('k3').innerHTML=DATA.filter(d=>d.src==='event').length+'<small>件</small>';
-    document.getElementById('k4').innerHTML=DATA.filter(d=>d.prio==='高').length+'<small>件</small>';
+    document.getElementById('k0').innerHTML=rows.length+'<small>件</small>';
+    document.getElementById('k1').innerHTML=rows.filter(d=>d.src==='accel').length+'<small>件</small>';
+    document.getElementById('k2').innerHTML=rows.filter(d=>d.src==='expo').length+'<small>件</small>';
+    document.getElementById('k3').innerHTML=rows.filter(d=>d.src==='event').length+'<small>件</small>';
+    document.getElementById('k4').innerHTML=rows.filter(d=>d.prio==='高').length+'<small>件</small>';
 
     document.getElementById('tbody').innerHTML=rows.map(r=>`
         <tr onclick="openP(${r.id})" class="${selId===r.id?'sel':''}">
-            <td><div class="c-main">${r.name}</div>${r.name!==r.company?`<div class="c-sub">${r.company}</div>`:''}</td>
+            <td><div class="c-main">${esc(r.name)}</div>${r.name!==r.company?`<div class="c-sub">${esc(r.company)}</div>`:''}</td>
             <td><span class="${srcBadge[r.src]}">${srcLabel[r.src]}</span></td>
-            <td>${r.name2?`<div class="c-main" style="font-weight:500">${r.name2}</div><div class="c-sub">${r.role2||''} ${r.dept?'/ '+r.dept:''}</div>`:'<span style="color:var(--muted)">—</span>'}</td>
-            <td><div class="av-row"><div class="av" style="${avStyle(r.person)}">${r.person[0]}</div><div><div class="av-n">${r.person}</div><div class="av-r">${r.role}</div></div></div></td>
-            <td>${r.src==='accel'?`<span class="${stClass(r.stage)}">${r.stage||'—'}</span><div class="c-sub" style="margin-top:2px">${r.status}</div>`:`<span class="${stClass(r.status)}">${r.status}</span>`}</td>
-            <td><span class="${prioClass[r.prio]}">${r.prio}</span></td>
-            <td><div style="font-size:.78rem">${r.phase||r.follow||'—'}</div></td>
-            <td><div style="font-size:.78rem">${r.date||'—'}</div></td>
+            <td>${r.name2?`<div class="c-main" style="font-weight:500">${esc(r.name2)}</div><div class="c-sub">${esc(r.role2||'')} ${r.dept?'/ '+esc(r.dept):''}</div>`:'<span style="color:var(--muted)">—</span>'}</td>
+            <td><div class="av-row"><div class="av" style="${avStyle(r.person)}">${esc(r.person[0])}</div><div><div class="av-n">${esc(r.person)}</div><div class="av-r">${esc(r.role)}</div></div></div></td>
+            <td>${r.src==='accel'?`<span class="${stClass(r.stage)}">${esc(r.stage)||'—'}</span><div class="c-sub" style="margin-top:2px">${esc(r.status)}</div>`:`<span class="${stClass(r.status)}">${esc(r.status)}</span>`}</td>
+            <td><span class="${prioClass[r.prio]}">${esc(r.prio)}</span></td>
+            <td><div style="font-size:.78rem">${esc(r.phase||r.follow||'—')}</div></td>
+            <td><div style="font-size:.78rem">${esc(r.date||'—')}</div></td>
         </tr>
     `).join('');
 }
@@ -1063,42 +1097,42 @@ function openP(id){
     let h='';
     h+=`<div class="p-sec"><div class="p-sec-t">基本情報</div>
         <div class="p-row"><div class="p-k">ソース</div><div class="p-v">${srcLabel[r.src]}</div></div>
-        <div class="p-row"><div class="p-k">企業名</div><div class="p-v">${r.company}</div></div>
-        ${r.src==='accel'?`<div class="p-row"><div class="p-k">ステージ</div><div class="p-v"><span class="${stClass(r.stage)}">${r.stage||'—'}</span></div></div>`:''}
-        <div class="p-row"><div class="p-k">ステータス</div><div class="p-v"><span class="${stClass(r.status)}">${r.status}</span></div></div>
-        <div class="p-row"><div class="p-k">優先度</div><div class="p-v"><span class="${prioClass[r.prio]}">${r.prio}</span></div></div>
-        <div class="p-row"><div class="p-k">日付/〆切</div><div class="p-v">${r.date||'—'}</div></div>
+        <div class="p-row"><div class="p-k">企業名</div><div class="p-v">${esc(r.company)}</div></div>
+        ${r.src==='accel'?`<div class="p-row"><div class="p-k">ステージ</div><div class="p-v"><span class="${stClass(r.stage)}">${esc(r.stage)||'—'}</span></div></div>`:''}
+        <div class="p-row"><div class="p-k">ステータス</div><div class="p-v"><span class="${stClass(r.status)}">${esc(r.status)}</span></div></div>
+        <div class="p-row"><div class="p-k">優先度</div><div class="p-v"><span class="${prioClass[r.prio]}">${esc(r.prio)}</span></div></div>
+        <div class="p-row"><div class="p-k">日付/〆切</div><div class="p-v">${esc(r.date||'—')}</div></div>
     </div>`;
     if(r.name2){
         h+=`<div class="p-sec"><div class="p-sec-t">担当者情報</div>
-            <div class="p-row"><div class="p-k">氏名</div><div class="p-v">${r.name2}</div></div>
-            <div class="p-row"><div class="p-k">役職</div><div class="p-v">${r.role2||'—'}</div></div>
-            <div class="p-row"><div class="p-k">部署</div><div class="p-v">${r.dept||'—'}</div></div>
-            <div class="p-row"><div class="p-k">メール</div><div class="p-v">${r.contact||'—'}</div></div>
+            <div class="p-row"><div class="p-k">氏名</div><div class="p-v">${esc(r.name2)}</div></div>
+            <div class="p-row"><div class="p-k">役職</div><div class="p-v">${esc(r.role2||'—')}</div></div>
+            <div class="p-row"><div class="p-k">部署</div><div class="p-v">${esc(r.dept||'—')}</div></div>
+            <div class="p-row"><div class="p-k">メール</div><div class="p-v">${r.contact&&r.contact!=='—'?`<a href="mailto:${esc(r.contact)}" style="color:var(--blue);text-decoration:none">${esc(r.contact)}</a>`:'—'}</div></div>
         </div>`;
     }
     h+=`<div class="p-sec"><div class="p-sec-t">社内担当</div>
-        <div class="p-row"><div class="p-k">担当者</div><div class="p-v"><div class="av-row"><div class="av" style="${avStyle(r.person)}">${r.person[0]}</div>${r.person}（${r.role}）</div></div></div>
+        <div class="p-row"><div class="p-k">担当者</div><div class="p-v"><div class="av-row"><div class="av" style="${avStyle(r.person)}">${esc(r.person[0])}</div>${esc(r.person)}（${esc(r.role)}）</div></div></div>
     </div>`;
     if(r.src==='accel'){
         h+=`<div class="p-sec"><div class="p-sec-t">アクセラ詳細</div>
-            <div class="p-row"><div class="p-k">ステージ</div><div class="p-v"><span class="${stClass(r.stage)}">${r.stage||'—'}</span></div></div>
-            <div class="p-row"><div class="p-k">フェーズ</div><div class="p-v">${r.phase||'—'}</div></div>
-            <div class="p-row"><div class="p-k">Quarter</div><div class="p-v">${r.quarter||'—'}</div></div>
-            <div class="p-row"><div class="p-k">金額支援</div><div class="p-v">${r.amount||'—'}</div></div>
-            <div class="p-row"><div class="p-k">提案価値</div><div class="p-v">${r.value||'—'}</div></div>
-            <div class="p-row"><div class="p-k">提案効率</div><div class="p-v">${r.efficiency||'—'}</div></div>
+            <div class="p-row"><div class="p-k">ステージ</div><div class="p-v"><span class="${stClass(r.stage)}">${esc(r.stage||'—')}</span></div></div>
+            <div class="p-row"><div class="p-k">フェーズ</div><div class="p-v">${esc(r.phase||'—')}</div></div>
+            <div class="p-row"><div class="p-k">Quarter</div><div class="p-v">${esc(r.quarter||'—')}</div></div>
+            <div class="p-row"><div class="p-k">金額支援</div><div class="p-v">${esc(r.amount||'—')}</div></div>
+            <div class="p-row"><div class="p-k">提案価値</div><div class="p-v">${esc(r.value||'—')}</div></div>
+            <div class="p-row"><div class="p-k">提案効率</div><div class="p-v">${esc(r.efficiency||'—')}</div></div>
         </div>`;
     }
     if(r.src==='expo'){
         h+=`<div class="p-sec"><div class="p-sec-t">展示会詳細</div>
-            <div class="p-row"><div class="p-k">展示会名</div><div class="p-v">${r.expoName||'—'}</div></div>
-            <div class="p-row"><div class="p-k">業種</div><div class="p-v">${r.industry||'—'}</div></div>
-            <div class="p-row"><div class="p-k">ニーズ</div><div class="p-v">${r.needs||'—'}</div></div>
-            <div class="p-row"><div class="p-k">予算規模</div><div class="p-v">${r.budget||'—'}</div></div>
-            <div class="p-row"><div class="p-k">導入時期</div><div class="p-v">${r.timing||'—'}</div></div>
-            <div class="p-row"><div class="p-k">決済権</div><div class="p-v">${r.decision||'—'}</div></div>
-            <div class="p-row"><div class="p-k">フォロー</div><div class="p-v">${r.follow||'—'}</div></div>
+            <div class="p-row"><div class="p-k">展示会名</div><div class="p-v">${esc(r.expoName||'—')}</div></div>
+            <div class="p-row"><div class="p-k">業種</div><div class="p-v">${esc(r.industry||'—')}</div></div>
+            <div class="p-row"><div class="p-k">ニーズ</div><div class="p-v">${esc(r.needs||'—')}</div></div>
+            <div class="p-row"><div class="p-k">予算規模</div><div class="p-v">${esc(r.budget||'—')}</div></div>
+            <div class="p-row"><div class="p-k">導入時期</div><div class="p-v">${esc(r.timing||'—')}</div></div>
+            <div class="p-row"><div class="p-k">決済権</div><div class="p-v">${esc(r.decision||'—')}</div></div>
+            <div class="p-row"><div class="p-k">フォロー</div><div class="p-v">${esc(r.follow||'—')}</div></div>
         </div>`;
     }
     if(r.src==='event' && r.cardImage){
@@ -1109,7 +1143,7 @@ function openP(id){
             <div style="font-size:.65rem;color:var(--muted);margin-top:5px;text-align:center;">クリックで拡大</div>
         </div>`;
     }
-    h+=`<div class="p-sec"><div class="p-sec-t">メモ</div><div class="p-memo">${r.memo||'なし'}</div></div>`;
+    h+=`<div class="p-sec"><div class="p-sec-t">メモ</div><div class="p-memo">${esc(r.memo||'なし')}</div></div>`;
     document.getElementById('pb').innerHTML=h;
     document.getElementById('panel').classList.add('open');
     document.getElementById('ov').classList.add('show');
@@ -1132,7 +1166,7 @@ const viewTitles = {
     calendar: '〆切カレンダー'
 };
 
-let chartsInitialized = {};
+const chartInstances = {};
 
 function switchView(viewId, sidebarItem){
     // update sidebar
@@ -1146,9 +1180,9 @@ function switchView(viewId, sidebarItem){
     // show/hide search box only on list view
     document.getElementById('searchBox').style.display = viewId === 'list' ? '' : 'none';
     // initialize analytics
-    if(viewId === 'accel' && !chartsInitialized.accel){ initAccelCharts(); chartsInitialized.accel=true; }
-    if(viewId === 'expo' && !chartsInitialized.expo){ initExpoCharts(); chartsInitialized.expo=true; }
-    if(viewId === 'event' && !chartsInitialized.event){ initEventCharts(); chartsInitialized.event=true; }
+    if(viewId === 'accel'){ initAccelCharts(); }
+    if(viewId === 'expo'){ initExpoCharts(); }
+    if(viewId === 'event'){ initEventCharts(); }
     if(viewId === 'report'){ renderReport(); }
     // close detail panel if open
     closeP();
@@ -1193,6 +1227,9 @@ const COMMON_BAR_OPTS = (indexAxis='x') => ({
 
 // ━━ ACCEL CHARTS ━━
 function initAccelCharts(){
+    ['accel-status','accel-phase','accel-person','accel-stage'].forEach(k=>{
+        if(chartInstances[k]){ chartInstances[k].destroy(); delete chartInstances[k]; }
+    });
     const ac = DATA.filter(d=>d.src==='accel');
 
     // KPIs
@@ -1209,14 +1246,14 @@ function initAccelCharts(){
     document.getElementById('ac-k3-label').textContent = ymLabel;
 
     // Chart 1: 案件状態 (pie)
-    new Chart(document.getElementById('ch-accel-status'), {
+    chartInstances['accel-status'] = new Chart(document.getElementById('ch-accel-status'), {
         type:'pie',
         data: makePieData(countBy(ac,'status')),
         options: COMMON_PIE_OPTS
     });
 
     // Chart 2: フェーズ分布 (horizontal bar)
-    new Chart(document.getElementById('ch-accel-phase'), {
+    chartInstances['accel-phase'] = new Chart(document.getElementById('ch-accel-phase'), {
         type:'bar',
         data: makeBarData(countBy(ac,'phase'),'#2563EB'),
         options: COMMON_BAR_OPTS('y')
@@ -1224,7 +1261,7 @@ function initAccelCharts(){
 
     // Chart 3: 担当者別件数 (grouped bar: role breakdown)
     const personMap = countBy(ac,'person');
-    new Chart(document.getElementById('ch-accel-person'), {
+    chartInstances['accel-person'] = new Chart(document.getElementById('ch-accel-person'), {
         type:'bar',
         data:{
             labels: Object.keys(personMap),
@@ -1237,7 +1274,7 @@ function initAccelCharts(){
     const stageOrder = ['リード','接触済','提出済','商談化'];
     const stageMap = {};
     stageOrder.forEach(s=>{ stageMap[s] = ac.filter(d=>d.stage===s).length; });
-    new Chart(document.getElementById('ch-accel-stage'), {
+    chartInstances['accel-stage'] = new Chart(document.getElementById('ch-accel-stage'), {
         type:'bar',
         data: makeBarData(stageMap,'#2563EB'),
         options: COMMON_BAR_OPTS('y')
@@ -1246,6 +1283,9 @@ function initAccelCharts(){
 
 // ━━ EXPO CHARTS ━━
 function initExpoCharts(){
+    ['expo-status','expo-person','expo-industry','expo-follow'].forEach(k=>{
+        if(chartInstances[k]){ chartInstances[k].destroy(); delete chartInstances[k]; }
+    });
     const ex = DATA.filter(d=>d.src==='expo');
 
     // KPIs
@@ -1258,7 +1298,7 @@ function initExpoCharts(){
     document.getElementById('ex-k3').innerHTML = newLead+'<small>件</small>';
 
     // Chart 1: ステータス分布 (pie)
-    new Chart(document.getElementById('ch-expo-status'), {
+    chartInstances['expo-status'] = new Chart(document.getElementById('ch-expo-status'), {
         type:'pie',
         data: makePieData(countBy(ex,'status')),
         options: COMMON_PIE_OPTS
@@ -1266,7 +1306,7 @@ function initExpoCharts(){
 
     // Chart 2: 担当者別件数 (bar)
     const personMap = countBy(ex,'person');
-    new Chart(document.getElementById('ch-expo-person'), {
+    chartInstances['expo-person'] = new Chart(document.getElementById('ch-expo-person'), {
         type:'bar',
         data:{
             labels: Object.keys(personMap),
@@ -1276,14 +1316,14 @@ function initExpoCharts(){
     });
 
     // Chart 3: 業種分布 (pie)
-    new Chart(document.getElementById('ch-expo-industry'), {
+    chartInstances['expo-industry'] = new Chart(document.getElementById('ch-expo-industry'), {
         type:'pie',
         data: makePieData(countBy(ex,'industry')),
         options: COMMON_PIE_OPTS
     });
 
     // Chart 4: フォロー進捗 (horizontal bar)
-    new Chart(document.getElementById('ch-expo-follow'), {
+    chartInstances['expo-follow'] = new Chart(document.getElementById('ch-expo-follow'), {
         type:'bar',
         data: makeBarData(countBy(ex,'follow'),'#2563EB'),
         options: COMMON_BAR_OPTS('y')
@@ -1292,6 +1332,9 @@ function initExpoCharts(){
 
 // ━━ EVENT CHARTS ━━
 function initEventCharts(){
+    ['event-status','event-person'].forEach(k=>{
+        if(chartInstances[k]){ chartInstances[k].destroy(); delete chartInstances[k]; }
+    });
     const ev = DATA.filter(d=>d.src==='event');
 
     // KPIs
@@ -1304,7 +1347,7 @@ function initEventCharts(){
     document.getElementById('ev-k3').innerHTML = newL+'<small>件</small>';
 
     // Chart 1: ステータス分布 (pie)
-    new Chart(document.getElementById('ch-event-status'), {
+    chartInstances['event-status'] = new Chart(document.getElementById('ch-event-status'), {
         type:'pie',
         data: makePieData(countBy(ev,'status')),
         options: COMMON_PIE_OPTS
@@ -1312,7 +1355,7 @@ function initEventCharts(){
 
     // Chart 2: 担当者別件数 (bar)
     const personMap = countBy(ev,'person');
-    new Chart(document.getElementById('ch-event-person'), {
+    chartInstances['event-person'] = new Chart(document.getElementById('ch-event-person'), {
         type:'bar',
         data:{
             labels: Object.keys(personMap),
@@ -1339,7 +1382,7 @@ function renderReport(){
     document.getElementById('rp-expo').textContent     = ex.length;
     document.getElementById('rp-expo-sub').textContent = `アポ ${ex.filter(d=>d.status==='アポ取得').length}件`;
     document.getElementById('rp-event').textContent    = ev.length;
-    document.getElementById('rp-event-sub').textContent= `対応済 ${ev.filter(d=>d.status==='対応済み').length}件`;
+    document.getElementById('rp-event-sub').textContent= `完了 ${ev.filter(d=>d.status==='完了').length}件`;
 
     persons.forEach((p,i)=>{
         document.getElementById('rp-p'+i).textContent = DATA.filter(d=>d.person===p).length;
@@ -1359,6 +1402,11 @@ function closeLightbox(){
 
 // ━━ CARD IMAGE ━━
 let cardImageData = null;
+
+function handleCardDragOver(e){
+    e.preventDefault();
+    document.getElementById('cardUploadZone').classList.add('drag');
+}
 
 function handleCardFile(file){
     if(!file || !file.type.startsWith('image/')) return;
@@ -1409,6 +1457,8 @@ function openAddModal(){
     document.querySelector('.modal-title').textContent = '新規リード追加';
     document.getElementById('addModal').classList.add('show');
     document.body.style.overflow = 'hidden';
+    document.getElementById('deleteBtn').style.display='none';
+    document.getElementById('submitBtn').textContent='追加する';
     resetAddForm();
 }
 
@@ -1419,6 +1469,8 @@ function openEditModal(){
     document.querySelector('.modal-title').textContent = 'リード編集';
     document.getElementById('addModal').classList.add('show');
     document.body.style.overflow = 'hidden';
+    document.getElementById('deleteBtn').style.display='';
+    document.getElementById('submitBtn').textContent='保存する';
     resetAddForm();
 
     // ソース切り替えと事前入力
@@ -1471,6 +1523,15 @@ function closeAddModal(){
     editId = null;
     document.getElementById('addModal').classList.remove('show');
     document.body.style.overflow = '';
+}
+
+function deleteCurrentLead(){
+    if(!confirm('このリードを削除しますか？')) return;
+    const idx = DATA.findIndex(d=>d.id===editId);
+    if(idx > -1){ DATA.splice(idx,1); saveToStorage(); }
+    closeAddModal();
+    closeP();
+    render();
 }
 
 function bgCloseModal(e){
@@ -1607,12 +1668,14 @@ function submitAddForm(){
         // 既存レコードを更新（IDとsrcは変えない）
         const idx = DATA.findIndex(d=>d.id===editId);
         if(idx > -1) Object.assign(DATA[idx], base, {id: DATA[idx].id, src: DATA[idx].src});
+        saveToStorage();
         const updatedId = editId;
         closeAddModal();
         render();
         openP(updatedId);
     } else {
         DATA.unshift(base);
+        saveToStorage();
         closeAddModal();
         const listItem = document.querySelector('.s-item[onclick*="list"]');
         switchView('list', listItem);
