@@ -161,6 +161,35 @@ td{padding:11px 14px;vertical-align:middle;}
 .placeholder-icon{font-size:3rem;margin-bottom:16px;}
 .placeholder-title{font-size:1rem;font-weight:900;color:var(--text);margin-bottom:8px;}
 .placeholder-sub{font-size:.8rem;color:var(--muted);}
+
+/* ADD MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:300;display:none;align-items:flex-start;justify-content:center;padding:32px 16px;overflow-y:auto;}
+.modal-bg.show{display:flex;}
+.modal-box{background:#fff;border-radius:16px;width:100%;max-width:620px;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.18);margin:auto;}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.modal-title{font-size:.95rem;font-weight:900;}
+.modal-body{padding:20px 22px;overflow-y:auto;max-height:70vh;}
+.modal-foot{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:1px solid var(--border);}
+.src-tabs{display:flex;gap:6px;margin-top:6px;}
+.src-tab{padding:6px 18px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:.78rem;font-weight:bold;cursor:pointer;color:var(--sub);transition:.15s;}
+.src-tab:hover{border-color:var(--blue);color:var(--blue);}
+.src-tab.on{background:var(--blue);color:#fff;border-color:var(--blue);}
+.src-tab.on-expo{background:#D97706;color:#fff;border-color:#D97706;}
+.src-tab.on-event{background:var(--green);color:#fff;border-color:var(--green);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin-top:4px;}
+.form-grid.full{grid-template-columns:1fr;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group.span2{grid-column:span 2;}
+.form-label{font-size:.68rem;font-weight:bold;color:var(--sub);letter-spacing:.06em;text-transform:uppercase;}
+.form-label span{color:var(--red);margin-left:2px;}
+.form-input{padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;color:var(--text);outline:none;transition:.15s;background:#fff;font-family:inherit;}
+.form-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+.form-input.err{border-color:var(--red);}
+select.form-input{cursor:pointer;}
+textarea.form-input{resize:vertical;min-height:72px;line-height:1.6;}
+.form-sec{margin:18px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border);font-size:.7rem;font-weight:bold;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+.btn-cancel{padding:7px 16px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:.8rem;font-weight:bold;color:var(--sub);cursor:pointer;transition:.15s;}
+.btn-cancel:hover{border-color:var(--text);color:var(--text);}
 </style>
 </head>
 <body>
@@ -187,7 +216,7 @@ td{padding:11px 14px;vertical-align:middle;}
 <header class="header">
     <div class="h-title" id="pageTitle">全リード一覧</div>
     <div class="h-search" id="searchBox"><span style="color:var(--muted);font-size:.85rem;">&#x1F50D;</span><input type="text" placeholder="企業名・担当者・氏名で検索..." id="q" oninput="render()"></div>
-    <button class="btn btn-p" onclick="alert('この機能は実装予定です。現在はLark Baseから直接追加してください。')">＋ 追加</button>
+    <button class="btn btn-p" onclick="openAddModal()">＋ 追加</button>
 </header>
 
 <!-- ═══════════════════════════════════════════════
@@ -579,6 +608,242 @@ td{padding:11px 14px;vertical-align:middle;}
 </div>
 
 </div><!-- /main -->
+</div>
+
+<!-- ADD MODAL -->
+<div class="modal-bg" id="addModal" onclick="bgCloseModal(event)">
+<div class="modal-box">
+    <div class="modal-head">
+        <div class="modal-title">新規リード追加</div>
+        <button class="p-close" onclick="closeAddModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+        <!-- ソース選択 -->
+        <div class="form-group">
+            <div class="form-label">ソース<span>*</span></div>
+            <div class="src-tabs">
+                <button class="src-tab on" data-src="accel" onclick="switchAddSrc('accel',this)">アクセラ</button>
+                <button class="src-tab" data-src="expo" onclick="switchAddSrc('expo',this)">展示会</button>
+                <button class="src-tab" data-src="event" onclick="switchAddSrc('event',this)">イベント</button>
+            </div>
+        </div>
+
+        <!-- ─── 共通フィールド ─── -->
+        <div class="form-sec">基本情報</div>
+        <div class="form-grid">
+            <!-- アクセラ: 案件名、他: 企業名 -->
+            <div class="form-group span2">
+                <label class="form-label" id="af-name-label">案件名<span>*</span></label>
+                <input class="form-input" id="af-name" type="text" placeholder="例: IPA 未踏アドバンスト2026">
+            </div>
+            <div class="form-group span2" id="af-company-wrap">
+                <label class="form-label">企業名</label>
+                <input class="form-input" id="af-company" type="text" placeholder="例: 株式会社〇〇">
+            </div>
+            <div class="form-group">
+                <label class="form-label">優先度<span>*</span></label>
+                <select class="form-input" id="af-prio">
+                    <option value="高">高</option>
+                    <option value="中" selected>中</option>
+                    <option value="低">低</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">日付 / 〆切</label>
+                <input class="form-input" id="af-date" type="date">
+            </div>
+            <div class="form-group">
+                <label class="form-label">社内担当<span>*</span></label>
+                <select class="form-input" id="af-person">
+                    <option value="田中">田中</option>
+                    <option value="鈴木">鈴木</option>
+                    <option value="佐藤">佐藤</option>
+                    <option value="山田">山田</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" id="af-role-label">役割</label>
+                <select class="form-input" id="af-role">
+                    <option value="AE">AE（Account Executive）</option>
+                    <option value="SS">SS（Sales Specialist）</option>
+                    <option value="SM">SM（Sales Manager）</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">ステータス<span>*</span></label>
+                <select class="form-input" id="af-status">
+                    <option value="準備中">準備中</option>
+                    <option value="応募中">応募中</option>
+                    <option value="審査中">審査中</option>
+                    <option value="完了">完了</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- ─── アクセラ専用 ─── -->
+        <div id="af-sec-accel">
+            <div class="form-sec">アクセラ詳細</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">フェーズ</label>
+                    <select class="form-input" id="af-phase">
+                        <option value="情報収集">情報収集</option>
+                        <option value="書類選考">書類選考</option>
+                        <option value="一次審査">一次審査</option>
+                        <option value="採択後">採択後</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Quarter</label>
+                    <select class="form-input" id="af-quarter">
+                        <option value="Q1">Q1</option>
+                        <option value="Q2">Q2</option>
+                        <option value="Q3" selected>Q3</option>
+                        <option value="Q4">Q4</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">金額支援</label>
+                    <input class="form-input" id="af-amount" type="text" placeholder="例: 最大500万円">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">提案効率</label>
+                    <select class="form-input" id="af-efficiency">
+                        <option value="高">高</option>
+                        <option value="中" selected>中</option>
+                        <option value="低">低</option>
+                    </select>
+                </div>
+                <div class="form-group span2">
+                    <label class="form-label">提案価値</label>
+                    <input class="form-input" id="af-value" type="text" placeholder="例: 技術認定＋資金">
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 展示会専用 ─── -->
+        <div id="af-sec-expo" style="display:none">
+            <div class="form-sec">担当者情報（名刺）</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">氏名</label>
+                    <input class="form-input" id="af-name2-expo" type="text" placeholder="例: 山崎 健一">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">役職</label>
+                    <input class="form-input" id="af-role2-expo" type="text" placeholder="例: 部長">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">部署</label>
+                    <input class="form-input" id="af-dept-expo" type="text" placeholder="例: 情報システム部">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">メール</label>
+                    <input class="form-input" id="af-contact-expo" type="email" placeholder="例: name@company.com">
+                </div>
+            </div>
+            <div class="form-sec">展示会詳細</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">展示会名</label>
+                    <select class="form-input" id="af-expo-name">
+                        <option value="Japan IT Week">Japan IT Week</option>
+                        <option value="製造業展示会">製造業展示会</option>
+                        <option value="マーケティングEXPO">マーケティングEXPO</option>
+                        <option value="その他">その他</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">業種</label>
+                    <select class="form-input" id="af-industry">
+                        <option value="IT・SaaS">IT・SaaS</option>
+                        <option value="製造業">製造業</option>
+                        <option value="商社・貿易">商社・貿易</option>
+                        <option value="メディア">メディア</option>
+                        <option value="クリエイティブ">クリエイティブ</option>
+                        <option value="その他">その他</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">決済権</label>
+                    <select class="form-input" id="af-decision">
+                        <option value="あり">あり</option>
+                        <option value="なし">なし</option>
+                        <option value="不明" selected>不明</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">フォロー状況</label>
+                    <select class="form-input" id="af-follow">
+                        <option value="メール作成済み">メール作成済み</option>
+                        <option value="送付済み">送付済み</option>
+                        <option value="返信あり">返信あり</option>
+                        <option value="アポ取得">アポ取得</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">予算規模</label>
+                    <select class="form-input" id="af-budget">
+                        <option value="未確認" selected>未確認</option>
+                        <option value="〜100万">〜100万</option>
+                        <option value="100〜500万">100〜500万</option>
+                        <option value="500万〜">500万〜</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">導入時期</label>
+                    <select class="form-input" id="af-timing">
+                        <option value="未定" selected>未定</option>
+                        <option value="即時">即時</option>
+                        <option value="2026年Q3">2026 Q3</option>
+                        <option value="2026年Q4">2026 Q4</option>
+                    </select>
+                </div>
+                <div class="form-group span2">
+                    <label class="form-label">ニーズ</label>
+                    <input class="form-input" id="af-needs" type="text" placeholder="例: 業務効率化、AI導入">
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── イベント専用 ─── -->
+        <div id="af-sec-event" style="display:none">
+            <div class="form-sec">担当者情報（名刺）</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">氏名</label>
+                    <input class="form-input" id="af-name2-event" type="text" placeholder="例: 吉田 真一">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">役職</label>
+                    <input class="form-input" id="af-role2-event" type="text" placeholder="例: 代表">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">部署</label>
+                    <input class="form-input" id="af-dept-event" type="text" placeholder="例: 事業開発部">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">メール</label>
+                    <input class="form-input" id="af-contact-event" type="email" placeholder="例: name@company.com">
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 共通: メモ ─── -->
+        <div class="form-sec">メモ</div>
+        <div class="form-grid full">
+            <div class="form-group">
+                <textarea class="form-input" id="af-memo" placeholder="商談メモ、次アクション等を自由に記入..."></textarea>
+            </div>
+        </div>
+
+    </div><!-- /modal-body -->
+    <div class="modal-foot">
+        <button class="btn-cancel" onclick="closeAddModal()">キャンセル</button>
+        <button class="btn btn-p" onclick="submitAddForm()">追加する</button>
+    </div>
+</div>
 </div>
 
 <!-- OVERLAY + PANEL -->
@@ -981,6 +1246,166 @@ function renderReport(){
     persons.forEach((p,i)=>{
         document.getElementById('rp-p'+i).textContent = DATA.filter(d=>d.person===p).length;
     });
+}
+
+// ━━ ADD MODAL ━━
+let addSrc = 'accel';
+
+const ADD_STATUS = {
+    accel: ['準備中','応募中','審査中','完了'],
+    expo:  ['新規','フォロー中','返信待ち','アポ取得'],
+    event: ['新規','フォロー中','対応済み']
+};
+const ADD_ROLE = {
+    accel: [['AE','AE（Account Executive）'],['SS','SS（Sales Specialist）'],['SM','SM（Sales Manager）']],
+    expo:  [['応対者','応対者'],['引継担当','引継担当']],
+    event: [['担当','担当']]
+};
+
+function openAddModal(){
+    document.getElementById('addModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    resetAddForm();
+}
+
+function closeAddModal(){
+    document.getElementById('addModal').classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+function bgCloseModal(e){
+    if(e.target === document.getElementById('addModal')) closeAddModal();
+}
+
+function resetAddForm(){
+    addSrc = 'accel';
+    // reset source tabs
+    document.querySelectorAll('.src-tab').forEach(t=>{ t.className='src-tab'; });
+    document.querySelector('.src-tab[data-src="accel"]').className='src-tab on';
+    // reset sections
+    document.getElementById('af-sec-accel').style.display = '';
+    document.getElementById('af-sec-expo').style.display  = 'none';
+    document.getElementById('af-sec-event').style.display = 'none';
+    document.getElementById('af-company-wrap').style.display = 'none';
+    // reset labels/selects
+    document.getElementById('af-name-label').innerHTML = '案件名<span>*</span>';
+    document.getElementById('af-name').placeholder = '例: IPA 未踏アドバンスト2026';
+    updateStatusOptions('accel');
+    updateRoleOptions('accel');
+    // clear inputs
+    ['af-name','af-company','af-memo','af-date','af-amount','af-value',
+     'af-name2-expo','af-role2-expo','af-dept-expo','af-contact-expo','af-needs',
+     'af-name2-event','af-role2-event','af-dept-event','af-contact-event'
+    ].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    document.querySelectorAll('.form-input.err').forEach(el=>el.classList.remove('err'));
+    // reset selects to default
+    document.getElementById('af-prio').value = '中';
+    document.getElementById('af-person').value = '田中';
+    document.getElementById('af-quarter') && (document.getElementById('af-quarter').value='Q3');
+    document.getElementById('af-efficiency') && (document.getElementById('af-efficiency').value='中');
+    document.getElementById('af-decision') && (document.getElementById('af-decision').value='不明');
+    document.getElementById('af-budget') && (document.getElementById('af-budget').value='未確認');
+    document.getElementById('af-timing') && (document.getElementById('af-timing').value='未定');
+}
+
+function switchAddSrc(src, btn){
+    addSrc = src;
+    // update tab styles
+    document.querySelectorAll('.src-tab').forEach(t=>{ t.className='src-tab'; });
+    btn.className = src==='accel' ? 'src-tab on' : src==='expo' ? 'src-tab on-expo' : 'src-tab on-event';
+    // show/hide sections
+    document.getElementById('af-sec-accel').style.display = src==='accel' ? '' : 'none';
+    document.getElementById('af-sec-expo').style.display  = src==='expo'  ? '' : 'none';
+    document.getElementById('af-sec-event').style.display = src==='event' ? '' : 'none';
+    // company field: アクセラは案件名が企業名を兼ねるので非表示、他は表示
+    document.getElementById('af-company-wrap').style.display = src==='accel' ? 'none' : '';
+    // update name label/placeholder
+    const nameLabel = {accel:'案件名', expo:'企業名', event:'企業名'};
+    const namePH    = {accel:'例: IPA 未踏アドバンスト2026', expo:'例: 株式会社テックソリューション', event:'例: 有限会社サクラテック'};
+    document.getElementById('af-name-label').innerHTML = nameLabel[src]+'<span>*</span>';
+    document.getElementById('af-name').placeholder = namePH[src];
+    updateStatusOptions(src);
+    updateRoleOptions(src);
+    document.querySelectorAll('.form-input.err').forEach(el=>el.classList.remove('err'));
+}
+
+function updateStatusOptions(src){
+    const sel = document.getElementById('af-status');
+    sel.innerHTML = ADD_STATUS[src].map(s=>`<option value="${s}">${s}</option>`).join('');
+}
+
+function updateRoleOptions(src){
+    const sel = document.getElementById('af-role');
+    const label = document.getElementById('af-role-label');
+    sel.innerHTML = ADD_ROLE[src].map(([v,t])=>`<option value="${v}">${t}</option>`).join('');
+    label.textContent = src==='accel' ? '役割' : '担当区分';
+}
+
+function submitAddForm(){
+    // validate required
+    const nameEl   = document.getElementById('af-name');
+    const personEl = document.getElementById('af-person');
+    const statusEl = document.getElementById('af-status');
+    let valid = true;
+    [nameEl].forEach(el=>{ el.classList.remove('err'); if(!el.value.trim()){ el.classList.add('err'); valid=false; } });
+    if(!valid){ nameEl.focus(); return; }
+
+    const name = nameEl.value.trim();
+    const company = addSrc==='accel' ? name : document.getElementById('af-company').value.trim() || name;
+
+    const base = {
+        id: DATA.reduce((m,d)=>Math.max(m,d.id),0)+1,
+        name, company,
+        src:    addSrc,
+        person: personEl.value,
+        role:   document.getElementById('af-role').value,
+        status: statusEl.value,
+        prio:   document.getElementById('af-prio').value,
+        date:   document.getElementById('af-date').value || null,
+        memo:   document.getElementById('af-memo').value.trim() || null,
+    };
+
+    if(addSrc==='accel'){
+        Object.assign(base, {
+            phase:      document.getElementById('af-phase').value,
+            quarter:    document.getElementById('af-quarter').value,
+            amount:     document.getElementById('af-amount').value.trim() || '—',
+            value:      document.getElementById('af-value').value.trim() || '—',
+            efficiency: document.getElementById('af-efficiency').value,
+            contact:    '—',
+        });
+    } else if(addSrc==='expo'){
+        Object.assign(base, {
+            name2:    document.getElementById('af-name2-expo').value.trim() || null,
+            role2:    document.getElementById('af-role2-expo').value.trim() || null,
+            dept:     document.getElementById('af-dept-expo').value.trim() || null,
+            contact:  document.getElementById('af-contact-expo').value.trim() || '—',
+            expoName: document.getElementById('af-expo-name').value,
+            industry: document.getElementById('af-industry').value,
+            decision: document.getElementById('af-decision').value,
+            follow:   document.getElementById('af-follow').value,
+            budget:   document.getElementById('af-budget').value,
+            timing:   document.getElementById('af-timing').value,
+            needs:    document.getElementById('af-needs').value.trim() || null,
+        });
+    } else {
+        Object.assign(base, {
+            name2:   document.getElementById('af-name2-event').value.trim() || null,
+            role2:   document.getElementById('af-role2-event').value.trim() || null,
+            dept:    document.getElementById('af-dept-event').value.trim() || null,
+            contact: document.getElementById('af-contact-event').value.trim() || '—',
+        });
+    }
+
+    DATA.unshift(base);
+    closeAddModal();
+    // switch to list and show newly added row highlighted
+    const listItem = document.querySelector('.s-item[onclick*="list"]');
+    switchView('list', listItem);
+    selId = base.id;
+    render();
+    // open detail panel for the new entry
+    openP(base.id);
 }
 
 // ━━ INIT ━━
