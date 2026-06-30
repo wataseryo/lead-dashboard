@@ -278,18 +278,17 @@ textarea.form-input{resize:vertical;min-height:72px;line-height:1.6;}
         </div>
     </div>
     <div class="filter-row">
-        <div class="fl">ステータス</div>
+        <div class="fl">ステータス<div style="font-size:.58rem;color:var(--muted);font-weight:400;margin-top:1px;">複数選択可</div></div>
         <div class="fp" id="f-status">
-            <button class="fb on" data-v="all" onclick="setF('status',this)">すべて</button>
-            <button class="fb" data-v="新規" onclick="setF('status',this)">新規</button>
-            <button class="fb" data-v="フォロー中" onclick="setF('status',this)">フォロー中</button>
-            <button class="fb" data-v="返信待ち" onclick="setF('status',this)">返信待ち</button>
-            <button class="fb" data-v="アポ取得" onclick="setF('status',this)">アポ取得</button>
-            <button class="fb" data-v="応募中" onclick="setF('status',this)">応募中</button>
-            <button class="fb" data-v="審査中" onclick="setF('status',this)">審査中</button>
-            <button class="fb" data-v="準備中" onclick="setF('status',this)">準備中</button>
-            <button class="fb" data-v="完了" onclick="setF('status',this)">完了</button>
-            <button class="fb" data-v="対応済み" onclick="setF('status',this)">対応済み</button>
+            <button class="fb on" data-v="all" onclick="toggleStatus(this)">すべて</button>
+            <button class="fb" data-v="新規" onclick="toggleStatus(this)">新規</button>
+            <button class="fb" data-v="フォロー中" onclick="toggleStatus(this)">フォロー中</button>
+            <button class="fb" data-v="返信待ち" onclick="toggleStatus(this)">返信待ち</button>
+            <button class="fb" data-v="アポ取得" onclick="toggleStatus(this)">アポ取得</button>
+            <button class="fb" data-v="応募中" onclick="toggleStatus(this)">応募中</button>
+            <button class="fb" data-v="審査中" onclick="toggleStatus(this)">審査中</button>
+            <button class="fb" data-v="準備中" onclick="toggleStatus(this)">準備中</button>
+            <button class="fb" data-v="完了" onclick="toggleStatus(this)">完了</button>
         </div>
     </div>
     <div class="filter-row">
@@ -896,7 +895,7 @@ textarea.form-input{resize:vertical;min-height:72px;line-height:1.6;}
 <!-- OVERLAY + PANEL -->
 <div class="overlay" id="ov" onclick="closeP()"></div>
 <div class="panel" id="panel">
-    <div class="p-head"><div class="p-title" id="pt">—</div><button class="p-close" onclick="closeP()">✕</button></div>
+    <div class="p-head"><div class="p-title" id="pt">—</div><div style="display:flex;gap:8px;align-items:center;"><button class="btn btn-p" onclick="openEditModal()" style="font-size:.72rem;padding:5px 12px;">編集</button><button class="p-close" onclick="closeP()">✕</button></div></div>
     <div class="p-body" id="pb"></div>
 </div>
 
@@ -920,13 +919,13 @@ const DATA = [
     {id:12,name:'合同会社クリエイティブワークス',company:'合同会社クリエイティブワークス',src:'expo',person:'田中',role:'応対者',status:'アポ取得',prio:'中',date:'2026-05-16',memo:'デザイン業務の効率化に関心。',expoName:'マーケティングEXPO',industry:'クリエイティブ',needs:'コンテンツ制作支援',budget:'〜100万',timing:'2026年Q4',decision:'あり',follow:'アポ取得',contact:'info@creativeworks.example',name2:'松本 翔太',dept:'制作部',role2:'ディレクター'},
 
     // イベント
-    {id:13,name:'有限会社サクラテック',company:'有限会社サクラテック',src:'event',person:'佐藤',role:'担当',status:'対応済み',prio:'中',date:'2026-06-05',memo:'スタートアップ交流会で名刺交換。フォローメール送付済み。',contact:'info@sakuratech.example',name2:'吉田 真一',dept:'事業開発部',role2:'代表'},
+    {id:13,name:'有限会社サクラテック',company:'有限会社サクラテック',src:'event',person:'佐藤',role:'担当',status:'完了',prio:'中',date:'2026-06-05',memo:'スタートアップ交流会で名刺交換。フォローメール送付済み。',contact:'info@sakuratech.example',name2:'吉田 真一',dept:'事業開発部',role2:'代表'},
     {id:14,name:'株式会社イノベーションハブ',company:'株式会社イノベーションハブ',src:'event',person:'佐藤',role:'担当',status:'フォロー中',prio:'高',date:'2026-06-05',memo:'VCからの紹介。CTOと面識あり。継続フォロー中。',contact:'contact@ihub.example',name2:'木村 拓也',dept:'技術部',role2:'CTO'},
     {id:15,name:'合同会社ビズパートナー',company:'合同会社ビズパートナー',src:'event',person:'佐藤',role:'担当',status:'新規',prio:'低',date:'2026-06-12',memo:'懇親会で名刺交換のみ。フォロー検討中。',contact:'—',name2:'井上 恵子',dept:'営業部',role2:'部長'},
 ];
 
 // ━━ FILTER STATE ━━
-const F = {source:'all',prio:'all',status:'all',person:'all',expo:'all',industry:'all',follow:'all',decision:'all',budget:'all',phase:'all',quarter:'all',timing:'all'};
+const F = {source:'all',prio:'all',status:[],person:'all',expo:'all',industry:'all',follow:'all',decision:'all',budget:'all',phase:'all',quarter:'all',timing:'all'};
 
 function setF(key, btn){
     F[key] = btn.dataset.v;
@@ -948,6 +947,10 @@ function updateChips(){
     const c=document.getElementById('activeChips');
     let h='';
     Object.entries(F).forEach(([k,v])=>{
+        if(k==='status'){
+            v.forEach(s=>{ h+=`<div class="af-chip">ステータス:${s}<button onclick="clearOneStatus('${s}')">×</button></div>`; });
+            return;
+        }
         if(v==='all') return;
         const label = typeof fLabels[k]==='object' ? fLabels[k][v] : (fLabels[k]||k+':')+v;
         h+=`<div class="af-chip">${label}<button onclick="clearF('${k}')">×</button></div>`;
@@ -955,7 +958,30 @@ function updateChips(){
     c.innerHTML=h;
 }
 
+function toggleStatus(btn){
+    const v=btn.dataset.v;
+    if(v==='all'){
+        F.status=[];
+        document.querySelectorAll('#f-status .fb').forEach((b,i)=>{ b.className=i===0?'fb on':'fb'; });
+    } else {
+        const idx=F.status.indexOf(v);
+        if(idx>-1) F.status.splice(idx,1); else F.status.push(v);
+        document.querySelector('#f-status .fb[data-v="all"]').className=F.status.length===0?'fb on':'fb';
+        btn.className=F.status.includes(v)?'fb on':'fb';
+    }
+    updateChips(); render();
+}
+
+function clearOneStatus(s){
+    F.status=F.status.filter(x=>x!==s);
+    const b=document.querySelector(`#f-status .fb[data-v="${s}"]`);
+    if(b) b.className='fb';
+    if(F.status.length===0){ const a=document.querySelector('#f-status .fb[data-v="all"]'); if(a) a.className='fb on'; }
+    updateChips(); render();
+}
+
 function clearF(key){
+    if(key==='status'){ F.status=[]; document.querySelectorAll('#f-status .fb').forEach((b,i)=>{ b.className=i===0?'fb on':'fb'; }); updateChips(); render(); return; }
     F[key]='all';
     document.querySelectorAll(`[onclick="setF('${key}',this)"]`).forEach((b,i)=>{
         b.className = i===0 ? 'fb on' : 'fb';
@@ -984,7 +1010,7 @@ function render(){
     const rows=DATA.filter(r=>{
         if(F.source!=='all'&&r.src!==F.source) return false;
         if(F.prio!=='all'&&r.prio!==F.prio) return false;
-        if(F.status!=='all'&&r.status!==F.status) return false;
+        if(F.status.length>0&&!F.status.includes(r.status)) return false;
         if(F.person!=='all'&&r.person!==F.person) return false;
         if(F.expo!=='all'&&r.expoName!==F.expo) return false;
         if(F.industry!=='all'&&r.industry!==F.industry) return false;
@@ -1252,7 +1278,7 @@ function initEventCharts(){
     const ev = DATA.filter(d=>d.src==='event');
 
     // KPIs
-    const done   = ev.filter(d=>d.status==='対応済み').length;
+    const done   = ev.filter(d=>d.status==='完了').length;
     const follow = ev.filter(d=>d.status==='フォロー中').length;
     const newL   = ev.filter(d=>d.status==='新規').length;
     document.getElementById('ev-k0').innerHTML = ev.length+'<small>件</small>';
@@ -1283,7 +1309,7 @@ function initEventCharts(){
 function renderReport(){
     const total = DATA.length;
     const high  = DATA.filter(d=>d.prio==='高').length;
-    const win   = DATA.filter(d=>['アポ取得','完了','対応済み'].includes(d.status)).length;
+    const win   = DATA.filter(d=>['アポ取得','完了'].includes(d.status)).length;
     document.getElementById('rp-total').textContent = total;
     document.getElementById('rp-high').textContent  = high;
     document.getElementById('rp-win').textContent   = win;
@@ -1348,11 +1374,12 @@ function clearCardImage(e){
 
 // ━━ ADD MODAL ━━
 let addSrc = 'accel';
+let editId = null;
 
 const ADD_STATUS = {
     accel: ['準備中','応募中','審査中','完了'],
     expo:  ['新規','フォロー中','返信待ち','アポ取得'],
-    event: ['新規','フォロー中','対応済み']
+    event: ['新規','フォロー中','完了']
 };
 const ADD_ROLE = {
     accel: [['AE','AE（Account Executive）'],['SS','SS（Sales Specialist）'],['SM','SM（Sales Manager）']],
@@ -1361,12 +1388,69 @@ const ADD_ROLE = {
 };
 
 function openAddModal(){
+    editId = null;
+    document.querySelector('.modal-title').textContent = '新規リード追加';
     document.getElementById('addModal').classList.add('show');
     document.body.style.overflow = 'hidden';
     resetAddForm();
 }
 
+function openEditModal(){
+    const r = DATA.find(d=>d.id===selId);
+    if(!r) return;
+    editId = r.id;
+    document.querySelector('.modal-title').textContent = 'リード編集';
+    document.getElementById('addModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    resetAddForm();
+
+    // ソース切り替えと事前入力
+    const srcBtn = document.querySelector(`.src-tab[data-src="${r.src}"]`);
+    switchAddSrc(r.src, srcBtn);
+
+    // 共通フィールド
+    document.getElementById('af-name').value    = r.name || '';
+    document.getElementById('af-company').value = r.src !== 'accel' ? (r.company || '') : '';
+    document.getElementById('af-prio').value    = r.prio || '中';
+    document.getElementById('af-date').value    = r.date || '';
+    document.getElementById('af-person').value  = r.person || '田中';
+    document.getElementById('af-memo').value    = r.memo || '';
+    // role と status はoptions生成後に値セット
+    const roleEl = document.getElementById('af-role');
+    if([...roleEl.options].some(o=>o.value===r.role)) roleEl.value = r.role;
+    const statusEl = document.getElementById('af-status');
+    if([...statusEl.options].some(o=>o.value===r.status)) statusEl.value = r.status;
+
+    // ソース別フィールド
+    if(r.src==='accel'){
+        document.getElementById('af-phase').value      = r.phase || '情報収集';
+        document.getElementById('af-quarter').value    = r.quarter || 'Q3';
+        document.getElementById('af-amount').value     = (r.amount&&r.amount!=='—') ? r.amount : '';
+        document.getElementById('af-value').value      = (r.value&&r.value!=='—') ? r.value : '';
+        document.getElementById('af-efficiency').value = r.efficiency || '中';
+    } else if(r.src==='expo'){
+        document.getElementById('af-name2-expo').value    = r.name2 || '';
+        document.getElementById('af-role2-expo').value    = r.role2 || '';
+        document.getElementById('af-dept-expo').value     = r.dept || '';
+        document.getElementById('af-contact-expo').value  = (r.contact&&r.contact!=='—') ? r.contact : '';
+        document.getElementById('af-expo-name').value     = r.expoName || '';
+        document.getElementById('af-industry').value      = r.industry || '';
+        document.getElementById('af-decision').value      = r.decision || '不明';
+        document.getElementById('af-follow').value        = r.follow || '';
+        document.getElementById('af-budget').value        = r.budget || '未確認';
+        document.getElementById('af-timing').value        = r.timing || '未定';
+        document.getElementById('af-needs').value         = r.needs || '';
+    } else {
+        document.getElementById('af-name2-event').value   = r.name2 || '';
+        document.getElementById('af-role2-event').value   = r.role2 || '';
+        document.getElementById('af-dept-event').value    = r.dept || '';
+        document.getElementById('af-contact-event').value = (r.contact&&r.contact!=='—') ? r.contact : '';
+        if(r.cardImage) setCardPreview(r.cardImage);
+    }
+}
+
 function closeAddModal(){
+    editId = null;
     document.getElementById('addModal').classList.remove('show');
     document.body.style.overflow = '';
 }
@@ -1500,15 +1584,23 @@ function submitAddForm(){
         });
     }
 
-    DATA.unshift(base);
-    closeAddModal();
-    // switch to list and show newly added row highlighted
-    const listItem = document.querySelector('.s-item[onclick*="list"]');
-    switchView('list', listItem);
-    selId = base.id;
-    render();
-    // open detail panel for the new entry
-    openP(base.id);
+    if(editId !== null){
+        // 既存レコードを更新（IDとsrcは変えない）
+        const idx = DATA.findIndex(d=>d.id===editId);
+        if(idx > -1) Object.assign(DATA[idx], base, {id: DATA[idx].id, src: DATA[idx].src});
+        const updatedId = editId;
+        closeAddModal();
+        render();
+        openP(updatedId);
+    } else {
+        DATA.unshift(base);
+        closeAddModal();
+        const listItem = document.querySelector('.s-item[onclick*="list"]');
+        switchView('list', listItem);
+        selId = base.id;
+        render();
+        openP(base.id);
+    }
 }
 
 // ━━ INIT ━━
