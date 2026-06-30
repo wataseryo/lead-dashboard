@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>リード管理ダッシュボード</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 :root {
     --bg: #F1F5F9; --white: #fff; --navy: #0F172A;
@@ -134,6 +135,32 @@ td{padding:11px 14px;vertical-align:middle;}
 .p-k{width:90px;font-size:.72rem;color:var(--muted);flex-shrink:0;padding-top:1px;}
 .p-v{font-size:.8rem;color:var(--text);font-weight:500;flex:1;}
 .p-memo{background:var(--bg);border-radius:8px;padding:10px 12px;font-size:.78rem;color:var(--sub);line-height:1.75;}
+
+/* ANALYTICS VIEWS */
+.view{display:none;}
+.view.active{display:block;}
+
+.board-kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:18px 24px 0;}
+.board-body{padding:16px 24px 24px;}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.chart-card{background:white;border-radius:12px;border:1px solid var(--border);padding:20px;}
+.chart-card-title{font-size:.78rem;font-weight:bold;color:var(--text);margin-bottom:16px;}
+.chart-canvas-wrap{position:relative;height:220px;}
+
+/* REPORT VIEW */
+.report-body{padding:18px 24px 24px;}
+.report-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+.report-card{background:white;border-radius:12px;border:1px solid var(--border);padding:20px;}
+.report-card-title{font-size:.75rem;font-weight:bold;color:var(--sub);margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em;}
+.report-stat{font-size:2rem;font-weight:900;line-height:1;margin-bottom:4px;}
+.report-sub{font-size:.7rem;color:var(--muted);}
+.report-section-title{font-size:.85rem;font-weight:900;color:var(--text);margin-bottom:12px;margin-top:4px;}
+
+/* PLACEHOLDER VIEW */
+.placeholder-body{padding:60px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+.placeholder-icon{font-size:3rem;margin-bottom:16px;}
+.placeholder-title{font-size:1rem;font-weight:900;color:var(--text);margin-bottom:8px;}
+.placeholder-sub{font-size:.8rem;color:var(--muted);}
 </style>
 </head>
 <body>
@@ -144,13 +171,13 @@ td{padding:11px 14px;vertical-align:middle;}
     <div class="s-logo"><div><div class="s-logo-t">Lead Hub</div><div class="s-logo-s">統合リード管理</div></div></div>
     <nav class="s-nav">
         <div class="s-lbl">ビュー</div>
-        <div class="s-item on">📋 全リード一覧</div>
-        <div class="s-item">🚀 アクセラ管理</div>
-        <div class="s-item">🎪 展示会</div>
-        <div class="s-item">📅 イベント</div>
+        <div class="s-item on" onclick="switchView('list',this)">📋 全リード一覧</div>
+        <div class="s-item" onclick="switchView('accel',this)">🚀 アクセラ</div>
+        <div class="s-item" onclick="switchView('expo',this)">🎪 展示会</div>
+        <div class="s-item" onclick="switchView('event',this)">📅 イベント</div>
         <div class="s-lbl">分析</div>
-        <div class="s-item">📊 レポート</div>
-        <div class="s-item">📆 〆切カレンダー</div>
+        <div class="s-item" onclick="switchView('report',this)">📊 レポート</div>
+        <div class="s-item" onclick="switchView('calendar',this)">📆 〆切カレンダー</div>
     </nav>
     <div class="s-foot"><div class="s-sync">🔄 Lark Base 連携中</div></div>
 </aside>
@@ -158,10 +185,15 @@ td{padding:11px 14px;vertical-align:middle;}
 <!-- MAIN -->
 <div class="main">
 <header class="header">
-    <div class="h-title">全リード一覧</div>
-    <div class="h-search"><span style="color:var(--muted)">🔍</span><input type="text" placeholder="企業名・担当者・氏名で検索..." id="q" oninput="render()"></div>
+    <div class="h-title" id="pageTitle">全リード一覧</div>
+    <div class="h-search" id="searchBox"><span style="color:var(--muted)">🔍</span><input type="text" placeholder="企業名・担当者・氏名で検索..." id="q" oninput="render()"></div>
     <button class="btn btn-p">＋ 追加</button>
 </header>
+
+<!-- ═══════════════════════════════════════════════
+     VIEW: 全リード一覧
+════════════════════════════════════════════════ -->
+<div id="view-list" class="view active">
 
 <!-- KPI -->
 <div class="kpi" style="grid-template-columns:repeat(5,1fr)">
@@ -174,7 +206,6 @@ td{padding:11px 14px;vertical-align:middle;}
 
 <!-- FILTERS -->
 <div class="filter-area" style="margin-top:16px;">
-    <!-- 基本フィルター -->
     <div class="filter-row">
         <div class="fl">ソース</div>
         <div class="fp" id="f-source">
@@ -219,7 +250,6 @@ td{padding:11px 14px;vertical-align:middle;}
         </div>
     </div>
 
-    <!-- 詳細フィルター toggle -->
     <div class="filter-toggle" onclick="toggleExtra()">
         <span id="extraIcon">＋</span> <span>詳細フィルター（展示会・アクセラ専用）</span>
     </div>
@@ -307,7 +337,6 @@ td{padding:11px 14px;vertical-align:middle;}
         </div>
     </div>
 
-    <!-- アクティブなフィルターチップ -->
     <div class="active-filters" id="activeChips"></div>
 </div>
 
@@ -333,7 +362,223 @@ td{padding:11px 14px;vertical-align:middle;}
     </table>
 </div>
 </div>
+</div><!-- /view-list -->
+
+<!-- ═══════════════════════════════════════════════
+     VIEW: アクセラ ボード
+════════════════════════════════════════════════ -->
+<div id="view-accel" class="view">
+    <div class="board-kpi">
+        <div class="kc" style="border-top:3px solid var(--blue)">
+            <div class="kc-l">総件数</div>
+            <div class="kc-n" id="ac-k0">—<small>件</small></div>
+            <div class="kc-f"><div class="dot" style="background:var(--blue)"></div>アクセラ全案件</div>
+        </div>
+        <div class="kc">
+            <div class="kc-l">進行中</div>
+            <div class="kc-n" id="ac-k1">—<small>件</small></div>
+            <div class="kc-f"><div class="dot" style="background:var(--amber)"></div>応募中・審査中・準備中</div>
+        </div>
+        <div class="kc">
+            <div class="kc-l">採択件数</div>
+            <div class="kc-n" id="ac-k2" style="color:var(--green)">—<small>件</small></div>
+            <div class="kc-f"><div class="dot" style="background:var(--green)"></div>完了・採択済み</div>
+        </div>
+        <div class="kc">
+            <div class="kc-l">今月〆切</div>
+            <div class="kc-n" id="ac-k3" style="color:var(--red)">—<small>件</small></div>
+            <div class="kc-f"><div class="dot" style="background:var(--red)"></div>2026年6月</div>
+        </div>
+    </div>
+    <div class="board-body">
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-card-title">案件状態</div>
+                <div class="chart-canvas-wrap"><canvas id="ch-accel-status"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-card-title">フェーズ分布</div>
+                <div class="chart-canvas-wrap"><canvas id="ch-accel-phase"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-card-title">担当者別件数</div>
+                <div class="chart-canvas-wrap"><canvas id="ch-accel-person"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-card-title">案件分類（提案価値）</div>
+                <div class="chart-canvas-wrap"><canvas id="ch-accel-value"></canvas></div>
+            </div>
+        </div>
+    </div>
+</div><!-- /view-accel -->
+
+<!-- ═══════════════════════════════════════════════
+     VIEW: 展示会 ボード
+════════════════════════════════════════════════ -->
+<div id="view-expo" class="view">
+    <div class="board-kpi">
+        <div class="kc" style="border-top:3px solid var(--amber)">
+            <div class="kc-l">総リード数</div>
+            <div class="kc-n" id="ex-k0">—<small>件</small></div>
+            <div class="kc-f"><div class="dot" style="background:var(--amber)"></div>展示会全リード</div>
+        </div>
+        <div class="kc">
+            <div class="kc-l">アポ取得数</div>
+            <div class="kc-n" id="ex-k1" style="color:var(--green)">—<small>件</small></div>
+            <div class="kc-f"><div class="dot" style="background:var(--green)"></div>商談化済み</div>
+        </div>
+        <div class="kc">
+            <div class="kc-l">フォロー中</div>
+            <div class="kc-n" id="ex-k2" style="color:var(--blue)">—<small>件</small></div>
+            <div class="kc-f"><div class="dot" style="background:var(--blue)"></div>継続対応中</div>
+        </div>
+        <div class="kc">
+            <div class="kc-l">未着手</div>
+            <div class="kc-n" id="ex-k3" style="color:var(--red)">—<small>件</small></div>
+            <div class="kc-f"><div class="dot" style="background:var(--red)"></div>新規・未対応</div>
+        </div>
+    </div>
+    <div class="board-body">
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-card-title">ステータス分布</div>
+                <div class="chart-canvas-wrap"><canvas id="ch-expo-status"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-card-title">担当者別件数</div>
+                <div class="chart-canvas-wrap"><canvas id="ch-expo-person"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-card-title">業種分布</div>
+                <div class="chart-canvas-wrap"><canvas id="ch-expo-industry"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-card-title">フォロー進捗</div>
+                <div class="chart-canvas-wrap"><canvas id="ch-expo-follow"></canvas></div>
+            </div>
+        </div>
+    </div>
+</div><!-- /view-expo -->
+
+<!-- ═══════════════════════════════════════════════
+     VIEW: イベント ボード
+════════════════════════════════════════════════ -->
+<div id="view-event" class="view">
+    <div class="board-kpi">
+        <div class="kc" style="border-top:3px solid var(--green)">
+            <div class="kc-l">総件数</div>
+            <div class="kc-n" id="ev-k0">—<small>件</small></div>
+            <div class="kc-f"><div class="dot" style="background:var(--green)"></div>イベント全コンタクト</div>
+        </div>
+        <div class="kc">
+            <div class="kc-l">対応済み</div>
+            <div class="kc-n" id="ev-k1" style="color:var(--green)">—<small>件</small></div>
+            <div class="kc-f"><div class="dot" style="background:var(--green)"></div>フォロー完了</div>
+        </div>
+        <div class="kc">
+            <div class="kc-l">フォロー中</div>
+            <div class="kc-n" id="ev-k2" style="color:var(--blue)">—<small>件</small></div>
+            <div class="kc-f"><div class="dot" style="background:var(--blue)"></div>継続対応中</div>
+        </div>
+        <div class="kc">
+            <div class="kc-l">新規</div>
+            <div class="kc-n" id="ev-k3" style="color:var(--muted)">—<small>件</small></div>
+            <div class="kc-f"><div class="dot" style="background:var(--muted)"></div>未着手</div>
+        </div>
+    </div>
+    <div class="board-body">
+        <div class="charts-grid" style="grid-template-columns:1fr 1fr;">
+            <div class="chart-card">
+                <div class="chart-card-title">ステータス分布</div>
+                <div class="chart-canvas-wrap"><canvas id="ch-event-status"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-card-title">担当者別件数</div>
+                <div class="chart-canvas-wrap"><canvas id="ch-event-person"></canvas></div>
+            </div>
+        </div>
+    </div>
+</div><!-- /view-event -->
+
+<!-- ═══════════════════════════════════════════════
+     VIEW: レポート
+════════════════════════════════════════════════ -->
+<div id="view-report" class="view">
+    <div class="report-body">
+        <div class="report-section-title">全体サマリー</div>
+        <div class="report-grid">
+            <div class="report-card" style="border-top:3px solid var(--blue)">
+                <div class="report-card-title">総リード数</div>
+                <div class="report-stat" id="rp-total">—</div>
+                <div class="report-sub">全ソース合計</div>
+            </div>
+            <div class="report-card" style="border-top:3px solid var(--red)">
+                <div class="report-card-title">高優先度</div>
+                <div class="report-stat" id="rp-high" style="color:var(--red)">—</div>
+                <div class="report-sub">要対応件数</div>
+            </div>
+            <div class="report-card" style="border-top:3px solid var(--green)">
+                <div class="report-card-title">アポ・採択</div>
+                <div class="report-stat" id="rp-win" style="color:var(--green)">—</div>
+                <div class="report-sub">成果件数</div>
+            </div>
+        </div>
+        <div class="report-section-title" style="margin-top:8px;">ソース別内訳</div>
+        <div class="report-grid">
+            <div class="report-card">
+                <div class="report-card-title">🚀 アクセラ</div>
+                <div class="report-stat" id="rp-accel" style="color:var(--blue)">—</div>
+                <div class="report-sub" id="rp-accel-sub">—</div>
+            </div>
+            <div class="report-card">
+                <div class="report-card-title">🎪 展示会</div>
+                <div class="report-stat" id="rp-expo" style="color:#92400E">—</div>
+                <div class="report-sub" id="rp-expo-sub">—</div>
+            </div>
+            <div class="report-card">
+                <div class="report-card-title">📅 イベント</div>
+                <div class="report-stat" id="rp-event" style="color:var(--green)">—</div>
+                <div class="report-sub" id="rp-event-sub">—</div>
+            </div>
+        </div>
+        <div class="report-section-title" style="margin-top:8px;">担当者別件数</div>
+        <div class="report-grid" style="grid-template-columns:repeat(4,1fr)">
+            <div class="report-card">
+                <div class="report-card-title">田中</div>
+                <div class="report-stat" id="rp-p0" style="color:var(--blue)">—</div>
+                <div class="report-sub">担当案件</div>
+            </div>
+            <div class="report-card">
+                <div class="report-card-title">鈴木</div>
+                <div class="report-stat" id="rp-p1" style="color:#7C3AED">—</div>
+                <div class="report-sub">担当案件</div>
+            </div>
+            <div class="report-card">
+                <div class="report-card-title">佐藤</div>
+                <div class="report-stat" id="rp-p2" style="color:#059669">—</div>
+                <div class="report-sub">担当案件</div>
+            </div>
+            <div class="report-card">
+                <div class="report-card-title">山田</div>
+                <div class="report-stat" id="rp-p3" style="color:#DC2626">—</div>
+                <div class="report-sub">担当案件</div>
+            </div>
+        </div>
+    </div>
+</div><!-- /view-report -->
+
+<!-- ═══════════════════════════════════════════════
+     VIEW: 〆切カレンダー (placeholder)
+════════════════════════════════════════════════ -->
+<div id="view-calendar" class="view">
+    <div class="placeholder-body">
+        <div class="placeholder-icon">📆</div>
+        <div class="placeholder-title">〆切カレンダー</div>
+        <div class="placeholder-sub">このビューは近日公開予定です。</div>
+    </div>
 </div>
+
+</div><!-- /main -->
 </div>
 
 <!-- OVERLAY + PANEL -->
@@ -362,7 +607,7 @@ const DATA = [
     {id:11,name:'株式会社デジタルメディア',company:'株式会社デジタルメディア',src:'expo',person:'鈴木',role:'引継担当',status:'フォロー中',prio:'高',date:'2026-05-15',memo:'メール送付済み。返信まち。',expoName:'マーケティングEXPO',industry:'メディア',needs:'マーケオートメーション',budget:'100〜500万',timing:'2026年Q4',decision:'なし',follow:'返信あり',contact:'—',name2:'橋本 彩',dept:'マーケティング部',role2:'マネージャー'},
     {id:12,name:'合同会社クリエイティブワークス',company:'合同会社クリエイティブワークス',src:'expo',person:'田中',role:'応対者',status:'アポ取得',prio:'中',date:'2026-05-16',memo:'デザイン業務の効率化に関心。',expoName:'マーケティングEXPO',industry:'クリエイティブ',needs:'コンテンツ制作支援',budget:'〜100万',timing:'2026年Q4',decision:'あり',follow:'アポ取得',contact:'info@creativeworks.example',name2:'松本 翔太',dept:'制作部',role2:'ディレクター'},
 
-    // イベント（担当者は一人で全件対応）
+    // イベント
     {id:13,name:'有限会社サクラテック',company:'有限会社サクラテック',src:'event',person:'佐藤',role:'担当',status:'対応済み',prio:'中',date:'2026-06-05',memo:'スタートアップ交流会で名刺交換。フォローメール送付済み。',contact:'info@sakuratech.example',name2:'吉田 真一',dept:'事業開発部',role2:'代表'},
     {id:14,name:'株式会社イノベーションハブ',company:'株式会社イノベーションハブ',src:'event',person:'佐藤',role:'担当',status:'フォロー中',prio:'高',date:'2026-06-05',memo:'VCからの紹介。CTOと面識あり。継続フォロー中。',contact:'contact@ihub.example',name2:'木村 拓也',dept:'技術部',role2:'CTO'},
     {id:15,name:'合同会社ビズパートナー',company:'合同会社ビズパートナー',src:'event',person:'佐藤',role:'担当',status:'新規',prio:'低',date:'2026-06-12',memo:'懇親会で名刺交換のみ。フォロー検討中。',contact:'—',name2:'井上 恵子',dept:'営業部',role2:'部長'},
@@ -406,7 +651,7 @@ function clearF(key){
     updateChips(); render();
 }
 
-// ━━ RENDER ━━
+// ━━ RENDER (list view) ━━
 let selId=null;
 const srcBadge={accel:'badge b-ac',expo:'badge b-ex',event:'badge b-ev'};
 const srcLabel={accel:'🚀 アクセラ',expo:'🎪 展示会',event:'📅 イベント'};
@@ -517,6 +762,224 @@ function closeP(){
     render();
 }
 
+// ━━ VIEW SWITCHING ━━
+const viewTitles = {
+    list: '全リード一覧',
+    accel: 'アクセラ ボード',
+    expo: '展示会 ボード',
+    event: 'イベント ボード',
+    report: 'レポート',
+    calendar: '〆切カレンダー'
+};
+
+let chartsInitialized = {};
+
+function switchView(viewId, sidebarItem){
+    // update sidebar
+    document.querySelectorAll('.s-item').forEach(el=>el.classList.remove('on'));
+    sidebarItem.classList.add('on');
+    // update views
+    document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+    document.getElementById('view-'+viewId).classList.add('active');
+    // update header title
+    document.getElementById('pageTitle').textContent = viewTitles[viewId] || viewId;
+    // show/hide search box only on list view
+    document.getElementById('searchBox').style.display = viewId === 'list' ? '' : 'none';
+    // initialize analytics
+    if(viewId === 'accel' && !chartsInitialized.accel){ initAccelCharts(); chartsInitialized.accel=true; }
+    if(viewId === 'expo' && !chartsInitialized.expo){ initExpoCharts(); chartsInitialized.expo=true; }
+    if(viewId === 'event' && !chartsInitialized.event){ initEventCharts(); chartsInitialized.event=true; }
+    if(viewId === 'report'){ renderReport(); }
+    // close detail panel if open
+    closeP();
+}
+
+// ━━ CHART HELPERS ━━
+const PALETTE_PIE   = ['#2563EB','#F59E0B','#10B981','#EF4444','#8B5CF6','#EC4899','#14B8A6'];
+const PALETTE_BAR   = ['#2563EB','#7C3AED','#059669','#DC2626'];
+const PIE_BG_ALPHA  = 0.85;
+
+function countBy(arr, key){
+    const map = {};
+    arr.forEach(r=>{ const v=r[key]||'不明'; map[v]=(map[v]||0)+1; });
+    return map;
+}
+
+function makeBarData(map, color='#2563EB'){
+    const labels = Object.keys(map);
+    const data   = Object.values(map);
+    return { labels, datasets:[{ data, backgroundColor: color, borderRadius:4, barThickness:18 }] };
+}
+
+function makePieData(map){
+    const labels = Object.keys(map);
+    const data   = Object.values(map);
+    const bg     = PALETTE_PIE.slice(0, labels.length).map(c=>c+'d9');
+    return { labels, datasets:[{ data, backgroundColor: bg, borderWidth:1, borderColor:'#fff' }] };
+}
+
+const COMMON_PIE_OPTS = {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ position:'right', labels:{ font:{size:11}, boxWidth:12, padding:10 } } }
+};
+const COMMON_BAR_OPTS = (indexAxis='x') => ({
+    responsive:true, maintainAspectRatio:false, indexAxis,
+    plugins:{ legend:{ display:false } },
+    scales:{
+        x:{ grid:{display:indexAxis==='y'}, ticks:{font:{size:11}} },
+        y:{ grid:{display:indexAxis==='x'}, ticks:{font:{size:11}} }
+    }
+});
+
+// ━━ ACCEL CHARTS ━━
+function initAccelCharts(){
+    const ac = DATA.filter(d=>d.src==='accel');
+
+    // KPIs
+    const inProgress = ac.filter(d=>['応募中','審査中','準備中'].includes(d.status)).length;
+    const adopted    = ac.filter(d=>d.status==='完了').length;
+    const thisMonth  = ac.filter(d=>d.date&&d.date.startsWith('2026-06')).length;
+    document.getElementById('ac-k0').innerHTML = ac.length+'<small>件</small>';
+    document.getElementById('ac-k1').innerHTML = inProgress+'<small>件</small>';
+    document.getElementById('ac-k2').innerHTML = adopted+'<small>件</small>';
+    document.getElementById('ac-k3').innerHTML = thisMonth+'<small>件</small>';
+
+    // Chart 1: 案件状態 (pie)
+    new Chart(document.getElementById('ch-accel-status'), {
+        type:'pie',
+        data: makePieData(countBy(ac,'status')),
+        options: COMMON_PIE_OPTS
+    });
+
+    // Chart 2: フェーズ分布 (horizontal bar)
+    new Chart(document.getElementById('ch-accel-phase'), {
+        type:'bar',
+        data: makeBarData(countBy(ac,'phase'),'#2563EB'),
+        options: COMMON_BAR_OPTS('y')
+    });
+
+    // Chart 3: 担当者別件数 (grouped bar: role breakdown)
+    const personMap = countBy(ac,'person');
+    new Chart(document.getElementById('ch-accel-person'), {
+        type:'bar',
+        data:{
+            labels: Object.keys(personMap),
+            datasets:[{ data: Object.values(personMap), backgroundColor: PALETTE_BAR.slice(0,Object.keys(personMap).length).map(c=>c+'cc'), borderRadius:4, barThickness:22 }]
+        },
+        options: COMMON_BAR_OPTS('x')
+    });
+
+    // Chart 4: 案件分類 / 提案価値 (pie)
+    new Chart(document.getElementById('ch-accel-value'), {
+        type:'pie',
+        data: makePieData(countBy(ac,'value')),
+        options: COMMON_PIE_OPTS
+    });
+}
+
+// ━━ EXPO CHARTS ━━
+function initExpoCharts(){
+    const ex = DATA.filter(d=>d.src==='expo');
+
+    // KPIs
+    const apo      = ex.filter(d=>d.status==='アポ取得').length;
+    const follow   = ex.filter(d=>d.status==='フォロー中').length;
+    const newLead  = ex.filter(d=>d.status==='新規').length;
+    document.getElementById('ex-k0').innerHTML = ex.length+'<small>件</small>';
+    document.getElementById('ex-k1').innerHTML = apo+'<small>件</small>';
+    document.getElementById('ex-k2').innerHTML = follow+'<small>件</small>';
+    document.getElementById('ex-k3').innerHTML = newLead+'<small>件</small>';
+
+    // Chart 1: ステータス分布 (pie)
+    new Chart(document.getElementById('ch-expo-status'), {
+        type:'pie',
+        data: makePieData(countBy(ex,'status')),
+        options: COMMON_PIE_OPTS
+    });
+
+    // Chart 2: 担当者別件数 (bar)
+    const personMap = countBy(ex,'person');
+    new Chart(document.getElementById('ch-expo-person'), {
+        type:'bar',
+        data:{
+            labels: Object.keys(personMap),
+            datasets:[{ data: Object.values(personMap), backgroundColor: PALETTE_BAR.slice(0,Object.keys(personMap).length).map(c=>c+'cc'), borderRadius:4, barThickness:22 }]
+        },
+        options: COMMON_BAR_OPTS('x')
+    });
+
+    // Chart 3: 業種分布 (pie)
+    new Chart(document.getElementById('ch-expo-industry'), {
+        type:'pie',
+        data: makePieData(countBy(ex,'industry')),
+        options: COMMON_PIE_OPTS
+    });
+
+    // Chart 4: フォロー進捗 (horizontal bar)
+    new Chart(document.getElementById('ch-expo-follow'), {
+        type:'bar',
+        data: makeBarData(countBy(ex,'follow'),'#2563EB'),
+        options: COMMON_BAR_OPTS('y')
+    });
+}
+
+// ━━ EVENT CHARTS ━━
+function initEventCharts(){
+    const ev = DATA.filter(d=>d.src==='event');
+
+    // KPIs
+    const done   = ev.filter(d=>d.status==='対応済み').length;
+    const follow = ev.filter(d=>d.status==='フォロー中').length;
+    const newL   = ev.filter(d=>d.status==='新規').length;
+    document.getElementById('ev-k0').innerHTML = ev.length+'<small>件</small>';
+    document.getElementById('ev-k1').innerHTML = done+'<small>件</small>';
+    document.getElementById('ev-k2').innerHTML = follow+'<small>件</small>';
+    document.getElementById('ev-k3').innerHTML = newL+'<small>件</small>';
+
+    // Chart 1: ステータス分布 (pie)
+    new Chart(document.getElementById('ch-event-status'), {
+        type:'pie',
+        data: makePieData(countBy(ev,'status')),
+        options: COMMON_PIE_OPTS
+    });
+
+    // Chart 2: 担当者別件数 (bar)
+    const personMap = countBy(ev,'person');
+    new Chart(document.getElementById('ch-event-person'), {
+        type:'bar',
+        data:{
+            labels: Object.keys(personMap),
+            datasets:[{ data: Object.values(personMap), backgroundColor: PALETTE_BAR.slice(0,Object.keys(personMap).length).map(c=>c+'cc'), borderRadius:4, barThickness:22 }]
+        },
+        options: COMMON_BAR_OPTS('x')
+    });
+}
+
+// ━━ REPORT VIEW ━━
+function renderReport(){
+    const total = DATA.length;
+    const high  = DATA.filter(d=>d.prio==='高').length;
+    const win   = DATA.filter(d=>['アポ取得','完了','対応済み'].includes(d.status)).length;
+    document.getElementById('rp-total').textContent = total;
+    document.getElementById('rp-high').textContent  = high;
+    document.getElementById('rp-win').textContent   = win;
+
+    const ac = DATA.filter(d=>d.src==='accel');
+    const ex = DATA.filter(d=>d.src==='expo');
+    const ev = DATA.filter(d=>d.src==='event');
+    document.getElementById('rp-accel').textContent    = ac.length;
+    document.getElementById('rp-accel-sub').textContent= `進行中 ${ac.filter(d=>['応募中','審査中','準備中'].includes(d.status)).length}件`;
+    document.getElementById('rp-expo').textContent     = ex.length;
+    document.getElementById('rp-expo-sub').textContent = `アポ ${ex.filter(d=>d.status==='アポ取得').length}件`;
+    document.getElementById('rp-event').textContent    = ev.length;
+    document.getElementById('rp-event-sub').textContent= `対応済 ${ev.filter(d=>d.status==='対応済み').length}件`;
+
+    persons.forEach((p,i)=>{
+        document.getElementById('rp-p'+i).textContent = DATA.filter(d=>d.person===p).length;
+    });
+}
+
+// ━━ INIT ━━
 render();
 </script>
 </body>
