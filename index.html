@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>リード管理ダッシュボード</title>
+<style>
+:root {
+    --bg: #F1F5F9; --white: #fff; --navy: #0F172A;
+    --text: #1E293B; --sub: #64748B; --muted: #94A3B8; --border: #E2E8F0;
+    --blue: #2563EB; --blue-bg: #EFF6FF;
+    --green: #10B981; --green-bg: #ECFDF5;
+    --amber: #F59E0B; --amber-bg: #FFFBEB;
+    --red: #EF4444; --red-bg: #FEF2F2;
+    --purple: #8B5CF6; --purple-bg: #F5F3FF;
+    --sw: 220px; --hh: 60px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Hiragino Kaku Gothic ProN','メイリオ',sans-serif;background:var(--bg);color:var(--text);font-size:13px;}
+
+/* SIDEBAR */
+.sidebar{width:var(--sw);background:var(--navy);position:fixed;top:0;left:0;bottom:0;display:flex;flex-direction:column;z-index:50;}
+.s-logo{height:var(--hh);display:flex;align-items:center;padding:0 20px;border-bottom:1px solid rgba(255,255,255,.07);}
+.s-logo-t{color:#fff;font-size:.95rem;font-weight:900;letter-spacing:.08em;}
+.s-logo-s{color:rgba(255,255,255,.3);font-size:.62rem;margin-top:1px;}
+.s-nav{padding:12px 10px;flex:1;overflow-y:auto;}
+.s-lbl{color:rgba(255,255,255,.25);font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;padding:10px 10px 4px;}
+.s-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;color:rgba(255,255,255,.5);font-size:.8rem;cursor:pointer;transition:.15s;margin-bottom:1px;}
+.s-item:hover{background:rgba(255,255,255,.06);color:#fff;}
+.s-item.on{background:rgba(37,99,235,.3);color:#fff;}
+.s-foot{padding:14px;border-top:1px solid rgba(255,255,255,.07);}
+.s-sync{color:rgba(255,255,255,.3);font-size:.68rem;text-align:center;}
+
+/* MAIN */
+.main{margin-left:var(--sw);display:flex;flex-direction:column;min-height:100vh;}
+
+/* HEADER */
+.header{height:var(--hh);background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:12px;position:sticky;top:0;z-index:40;}
+.h-title{font-size:.92rem;font-weight:900;flex:1;}
+.h-search{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 12px;width:220px;}
+.h-search input{border:none;background:transparent;font-size:.8rem;color:var(--text);outline:none;width:100%;}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;font-size:.8rem;font-weight:bold;cursor:pointer;border:none;transition:.15s;}
+.btn-p{background:var(--blue);color:#fff;}
+.btn-p:hover{background:#1D4ED8;}
+
+/* KPI */
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:18px 24px 0;}
+.kc{background:var(--white);border-radius:12px;padding:16px 18px;border:1px solid var(--border);}
+.kc-l{font-size:.7rem;color:var(--sub);margin-bottom:5px;}
+.kc-n{font-size:1.55rem;font-weight:900;line-height:1;}
+.kc-n small{font-size:.72rem;font-weight:400;color:var(--muted);margin-left:2px;}
+.kc-f{margin-top:5px;font-size:.68rem;color:var(--muted);display:flex;align-items:center;gap:4px;}
+.dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+
+/* FILTERS */
+.filter-area{padding:14px 24px;background:var(--white);border-bottom:1px solid var(--border);margin-top:1px;}
+.filter-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+.filter-row:last-child{margin-bottom:0;}
+.fl{font-size:.68rem;font-weight:bold;color:var(--sub);white-space:nowrap;min-width:56px;}
+.fp{display:flex;gap:5px;flex-wrap:wrap;}
+.fb{padding:4px 11px;border-radius:100px;border:1px solid var(--border);background:var(--white);font-size:.72rem;cursor:pointer;transition:.15s;font-weight:600;color:var(--sub);}
+.fb:hover{border-color:var(--blue);color:var(--blue);}
+.fb.on{background:var(--blue);color:#fff;border-color:var(--blue);}
+.fb.on-green{background:var(--green);color:#fff;border-color:var(--green);}
+.fb.on-amber{background:var(--amber);color:#fff;border-color:var(--amber);}
+.fb.on-red{background:var(--red);color:#fff;border-color:var(--red);}
+.fs{padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--white);font-size:.75rem;color:var(--text);cursor:pointer;outline:none;}
+.filter-toggle{display:flex;align-items:center;gap:6px;color:var(--blue);font-size:.75rem;font-weight:bold;cursor:pointer;padding:4px 0;user-select:none;}
+.filter-extra{display:none;padding-top:10px;border-top:1px solid var(--border);margin-top:10px;}
+.filter-extra.open{display:block;}
+.filter-extra-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
+.fe-group{display:flex;flex-direction:column;gap:5px;}
+.fe-label{font-size:.65rem;font-weight:bold;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+.fe-pills{display:flex;gap:4px;flex-wrap:wrap;}
+.active-filters{display:flex;gap:6px;flex-wrap:wrap;padding:8px 0 2px;}
+.af-chip{display:inline-flex;align-items:center;gap:5px;background:var(--blue-bg);border:1px solid #BFDBFE;color:var(--blue);border-radius:100px;padding:2px 10px;font-size:.68rem;font-weight:bold;}
+.af-chip button{border:none;background:none;color:var(--blue);cursor:pointer;font-size:.8rem;line-height:1;padding:0;}
+
+/* TABLE */
+.tw{padding:16px 24px 24px;}
+.tc{background:var(--white);border-radius:12px;border:1px solid var(--border);overflow:hidden;}
+.t-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--border);}
+.t-cnt{font-size:.78rem;color:var(--sub);}
+.t-cnt strong{color:var(--text);}
+.t-hint{font-size:.68rem;color:var(--muted);}
+table{width:100%;border-collapse:collapse;}
+thead th{text-align:left;padding:9px 14px;font-size:.67rem;font-weight:bold;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--border);background:#FAFAFA;white-space:nowrap;cursor:pointer;}
+thead th:hover{color:var(--text);}
+tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:#F8FAFC;}
+tbody tr.sel{background:var(--blue-bg);}
+td{padding:11px 14px;vertical-align:middle;}
+.c-main{font-weight:700;font-size:.84rem;}
+.c-sub{font-size:.7rem;color:var(--muted);margin-top:1px;}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 9px;border-radius:100px;font-size:.68rem;font-weight:bold;white-space:nowrap;}
+.b-ac{background:var(--blue-bg);color:var(--blue);}
+.b-ev{background:var(--green-bg);color:var(--green);}
+.b-ex{background:var(--amber-bg);color:#92400E;}
+.p-high{background:#FEE2E2;color:#B91C1C;}
+.p-mid{background:#FEF3C7;color:#92400E;}
+.p-low{background:#F1F5F9;color:var(--sub);}
+.st{display:inline-block;padding:3px 9px;border-radius:6px;font-size:.7rem;font-weight:bold;}
+.s-act{background:#D1FAE5;color:#065F46;}
+.s-pen{background:#FEF3C7;color:#92400E;}
+.s-new{background:#F1F5F9;color:var(--sub);}
+.s-rev{background:#E0E7FF;color:#3730A3;}
+.s-done{background:#D1FAE5;color:#065F46;}
+.s-con{background:#FCE7F3;color:#9D174D;}
+.s-wait{background:#FEF9C3;color:#713F12;}
+
+/* AVATAR */
+.av{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:bold;color:#fff;flex-shrink:0;}
+.av-row{display:flex;align-items:center;gap:6px;}
+.av-n{font-size:.8rem;}
+.av-r{font-size:.68rem;color:var(--muted);}
+
+/* DETAIL PANEL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.12);z-index:150;display:none;}
+.overlay.show{display:block;}
+.panel{position:fixed;top:0;right:-440px;bottom:0;width:440px;background:var(--white);border-left:1px solid var(--border);z-index:200;display:flex;flex-direction:column;transition:right .25s cubic-bezier(.4,0,.2,1);box-shadow:-6px 0 24px rgba(0,0,0,.08);}
+.panel.open{right:0;}
+.p-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.p-title{font-size:.9rem;font-weight:900;}
+.p-close{width:28px;height:28px;border-radius:7px;border:1px solid var(--border);background:var(--white);cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;color:var(--sub);transition:.15s;}
+.p-close:hover{background:var(--bg);}
+.p-body{flex:1;overflow-y:auto;padding:18px 20px;}
+.p-sec{margin-bottom:22px;}
+.p-sec-t{font-size:.62rem;font-weight:bold;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--border);}
+.p-row{display:flex;gap:10px;margin-bottom:8px;align-items:flex-start;}
+.p-k{width:90px;font-size:.72rem;color:var(--muted);flex-shrink:0;padding-top:1px;}
+.p-v{font-size:.8rem;color:var(--text);font-weight:500;flex:1;}
+.p-memo{background:var(--bg);border-radius:8px;padding:10px 12px;font-size:.78rem;color:var(--sub);line-height:1.75;}
+</style>
+</head>
+<body>
+<div style="display:flex;min-height:100vh;">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="s-logo"><div><div class="s-logo-t">Lead Hub</div><div class="s-logo-s">統合リード管理</div></div></div>
+    <nav class="s-nav">
+        <div class="s-lbl">ビュー</div>
+        <div class="s-item on">📋 全リード一覧</div>
+        <div class="s-item">🚀 アクセラ管理</div>
+        <div class="s-item">🎪 展示会</div>
+        <div class="s-item">📅 イベント</div>
+        <div class="s-lbl">分析</div>
+        <div class="s-item">📊 レポート</div>
+        <div class="s-item">📆 〆切カレンダー</div>
+    </nav>
+    <div class="s-foot"><div class="s-sync">🔄 Lark Base 連携中</div></div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+<header class="header">
+    <div class="h-title">全リード一覧</div>
+    <div class="h-search"><span style="color:var(--muted)">🔍</span><input type="text" placeholder="企業名・担当者・氏名で検索..." id="q" oninput="render()"></div>
+    <button class="btn btn-p">＋ 追加</button>
+</header>
+
+<!-- KPI -->
+<div class="kpi" style="grid-template-columns:repeat(5,1fr)">
+    <div class="kc" style="border-top:3px solid var(--blue)"><div class="kc-l">総リード数</div><div class="kc-n" id="k0">—<small>件</small></div><div class="kc-f"><div class="dot" style="background:var(--blue)"></div>全ソース合計</div></div>
+    <div class="kc"><div class="kc-l">アクセラ案件</div><div class="kc-n" id="k1">—<small>件</small></div><div class="kc-f"><div class="dot" style="background:var(--blue)"></div>応募中・審査中</div></div>
+    <div class="kc"><div class="kc-l">展示会リード</div><div class="kc-n" id="k2">—<small>件</small></div><div class="kc-f"><div class="dot" style="background:var(--amber)"></div>フォロー進捗あり</div></div>
+    <div class="kc"><div class="kc-l">イベント獲得</div><div class="kc-n" id="k3">—<small>件</small></div><div class="kc-f"><div class="dot" style="background:var(--green)"></div>名刺・コンタクト</div></div>
+    <div class="kc"><div class="kc-l">高優先度</div><div class="kc-n" id="k4" style="color:var(--red)">—<small>件</small></div><div class="kc-f"><div class="dot" style="background:var(--red)"></div>要対応</div></div>
+</div>
+
+<!-- FILTERS -->
+<div class="filter-area" style="margin-top:16px;">
+    <!-- 基本フィルター -->
+    <div class="filter-row">
+        <div class="fl">ソース</div>
+        <div class="fp" id="f-source">
+            <button class="fb on" data-v="all" onclick="setF('source',this)">すべて</button>
+            <button class="fb" data-v="accel" onclick="setF('source',this)">🚀 アクセラ</button>
+            <button class="fb" data-v="expo" onclick="setF('source',this)">🎪 展示会</button>
+            <button class="fb" data-v="event" onclick="setF('source',this)">📅 イベント</button>
+        </div>
+    </div>
+    <div class="filter-row">
+        <div class="fl">優先度</div>
+        <div class="fp" id="f-prio">
+            <button class="fb on" data-v="all" onclick="setF('prio',this)">すべて</button>
+            <button class="fb" data-v="高" onclick="setF('prio',this)">🔴 高</button>
+            <button class="fb" data-v="中" onclick="setF('prio',this)">🟡 中</button>
+            <button class="fb" data-v="低" onclick="setF('prio',this)">⚪ 低</button>
+        </div>
+    </div>
+    <div class="filter-row">
+        <div class="fl">ステータス</div>
+        <div class="fp" id="f-status">
+            <button class="fb on" data-v="all" onclick="setF('status',this)">すべて</button>
+            <button class="fb" data-v="新規" onclick="setF('status',this)">新規</button>
+            <button class="fb" data-v="フォロー中" onclick="setF('status',this)">フォロー中</button>
+            <button class="fb" data-v="返信待ち" onclick="setF('status',this)">返信待ち</button>
+            <button class="fb" data-v="アポ取得" onclick="setF('status',this)">アポ取得</button>
+            <button class="fb" data-v="応募中" onclick="setF('status',this)">応募中</button>
+            <button class="fb" data-v="審査中" onclick="setF('status',this)">審査中</button>
+            <button class="fb" data-v="準備中" onclick="setF('status',this)">準備中</button>
+            <button class="fb" data-v="完了" onclick="setF('status',this)">完了</button>
+            <button class="fb" data-v="対応済み" onclick="setF('status',this)">対応済み</button>
+        </div>
+    </div>
+    <div class="filter-row">
+        <div class="fl">担当者</div>
+        <div class="fp" id="f-person">
+            <button class="fb on" data-v="all" onclick="setF('person',this)">すべて</button>
+            <button class="fb" data-v="田中" onclick="setF('person',this)">田中</button>
+            <button class="fb" data-v="鈴木" onclick="setF('person',this)">鈴木</button>
+            <button class="fb" data-v="佐藤" onclick="setF('person',this)">佐藤</button>
+            <button class="fb" data-v="山田" onclick="setF('person',this)">山田</button>
+        </div>
+    </div>
+
+    <!-- 詳細フィルター toggle -->
+    <div class="filter-toggle" onclick="toggleExtra()">
+        <span id="extraIcon">＋</span> <span>詳細フィルター（展示会・アクセラ専用）</span>
+    </div>
+    <div class="filter-extra" id="filterExtra">
+        <div class="filter-extra-grid">
+            <div class="fe-group">
+                <div class="fe-label">🎪 展示会名</div>
+                <div class="fe-pills" id="f-expo">
+                    <button class="fb on" data-v="all" onclick="setF('expo',this)">すべて</button>
+                    <button class="fb" data-v="Japan IT Week" onclick="setF('expo',this)">Japan IT Week</button>
+                    <button class="fb" data-v="製造業展示会" onclick="setF('expo',this)">製造業展示会</button>
+                    <button class="fb" data-v="マーケティングEXPO" onclick="setF('expo',this)">マーケEXPO</button>
+                </div>
+            </div>
+            <div class="fe-group">
+                <div class="fe-label">🎪 業種</div>
+                <div class="fe-pills" id="f-industry">
+                    <button class="fb on" data-v="all" onclick="setF('industry',this)">すべて</button>
+                    <button class="fb" data-v="IT・SaaS" onclick="setF('industry',this)">IT・SaaS</button>
+                    <button class="fb" data-v="製造業" onclick="setF('industry',this)">製造業</button>
+                    <button class="fb" data-v="商社・貿易" onclick="setF('industry',this)">商社・貿易</button>
+                    <button class="fb" data-v="メディア" onclick="setF('industry',this)">メディア</button>
+                    <button class="fb" data-v="クリエイティブ" onclick="setF('industry',this)">クリエイティブ</button>
+                </div>
+            </div>
+            <div class="fe-group">
+                <div class="fe-label">🎪 フォロー状況</div>
+                <div class="fe-pills" id="f-follow">
+                    <button class="fb on" data-v="all" onclick="setF('follow',this)">すべて</button>
+                    <button class="fb" data-v="送付済み" onclick="setF('follow',this)">送付済み</button>
+                    <button class="fb" data-v="返信あり" onclick="setF('follow',this)">返信あり</button>
+                    <button class="fb" data-v="アポ取得" onclick="setF('follow',this)">アポ取得</button>
+                    <button class="fb" data-v="メール作成済み" onclick="setF('follow',this)">メール作成済み</button>
+                </div>
+            </div>
+            <div class="fe-group">
+                <div class="fe-label">🎪 決済権</div>
+                <div class="fe-pills" id="f-decision">
+                    <button class="fb on" data-v="all" onclick="setF('decision',this)">すべて</button>
+                    <button class="fb" data-v="あり" onclick="setF('decision',this)">あり</button>
+                    <button class="fb" data-v="なし" onclick="setF('decision',this)">なし</button>
+                    <button class="fb" data-v="不明" onclick="setF('decision',this)">不明</button>
+                </div>
+            </div>
+            <div class="fe-group">
+                <div class="fe-label">🎪 予算規模</div>
+                <div class="fe-pills" id="f-budget">
+                    <button class="fb on" data-v="all" onclick="setF('budget',this)">すべて</button>
+                    <button class="fb" data-v="〜100万" onclick="setF('budget',this)">〜100万</button>
+                    <button class="fb" data-v="100〜500万" onclick="setF('budget',this)">100〜500万</button>
+                    <button class="fb" data-v="500万〜" onclick="setF('budget',this)">500万〜</button>
+                    <button class="fb" data-v="未確認" onclick="setF('budget',this)">未確認</button>
+                </div>
+            </div>
+            <div class="fe-group">
+                <div class="fe-label">🚀 フェーズ</div>
+                <div class="fe-pills" id="f-phase">
+                    <button class="fb on" data-v="all" onclick="setF('phase',this)">すべて</button>
+                    <button class="fb" data-v="情報収集" onclick="setF('phase',this)">情報収集</button>
+                    <button class="fb" data-v="書類選考" onclick="setF('phase',this)">書類選考</button>
+                    <button class="fb" data-v="一次審査" onclick="setF('phase',this)">一次審査</button>
+                    <button class="fb" data-v="採択後" onclick="setF('phase',this)">採択後</button>
+                </div>
+            </div>
+            <div class="fe-group">
+                <div class="fe-label">🚀 Quarter</div>
+                <div class="fe-pills" id="f-quarter">
+                    <button class="fb on" data-v="all" onclick="setF('quarter',this)">すべて</button>
+                    <button class="fb" data-v="Q1" onclick="setF('quarter',this)">Q1</button>
+                    <button class="fb" data-v="Q2" onclick="setF('quarter',this)">Q2</button>
+                    <button class="fb" data-v="Q3" onclick="setF('quarter',this)">Q3</button>
+                    <button class="fb" data-v="Q4" onclick="setF('quarter',this)">Q4</button>
+                </div>
+            </div>
+            <div class="fe-group">
+                <div class="fe-label">🎪 導入時期</div>
+                <div class="fe-pills" id="f-timing">
+                    <button class="fb on" data-v="all" onclick="setF('timing',this)">すべて</button>
+                    <button class="fb" data-v="即時" onclick="setF('timing',this)">即時</button>
+                    <button class="fb" data-v="2026年Q3" onclick="setF('timing',this)">2026 Q3</button>
+                    <button class="fb" data-v="2026年Q4" onclick="setF('timing',this)">2026 Q4</button>
+                    <button class="fb" data-v="未定" onclick="setF('timing',this)">未定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- アクティブなフィルターチップ -->
+    <div class="active-filters" id="activeChips"></div>
+</div>
+
+<!-- TABLE -->
+<div class="tw">
+<div class="tc">
+    <div class="t-bar">
+        <div class="t-cnt">表示中：<strong id="cnt">0</strong> 件</div>
+        <div class="t-hint">行をクリックで詳細表示</div>
+    </div>
+    <table>
+        <thead><tr>
+            <th>企業名 / 案件名</th>
+            <th>ソース</th>
+            <th>氏名（担当者）</th>
+            <th>社内担当</th>
+            <th>ステータス</th>
+            <th>優先度</th>
+            <th>フェーズ / 進捗</th>
+            <th>日付 / 〆切</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+    </table>
+</div>
+</div>
+</div>
+</div>
+
+<!-- OVERLAY + PANEL -->
+<div class="overlay" id="ov" onclick="closeP()"></div>
+<div class="panel" id="panel">
+    <div class="p-head"><div class="p-title" id="pt">—</div><button class="p-close" onclick="closeP()">✕</button></div>
+    <div class="p-body" id="pb"></div>
+</div>
+
+<script>
+// ━━ DATA ━━
+const DATA = [
+    // アクセラ
+    {id:1,name:'IPA 未踏アドバンスト2026',company:'IPA（情報処理推進機構）',src:'accel',person:'田中',role:'AE',status:'応募中',prio:'高',date:'2026-07-15',memo:'提案資料の最終確認が必要。早期〆切に注意。',phase:'書類選考',quarter:'Q3',amount:'最大500万円',value:'技術認定＋資金',efficiency:'高',contact:'—'},
+    {id:2,name:'NEDO スタートアップ支援',company:'NEDO',src:'accel',person:'鈴木',role:'SM',status:'審査中',prio:'高',date:'2026-07-20',memo:'ヒアリング日程調整中。',phase:'一次審査',quarter:'Q3',amount:'最大1,000万円',value:'資金＋広報',efficiency:'高',contact:'—'},
+    {id:3,name:'J-Startup 認定プログラム',company:'経済産業省',src:'accel',person:'田中',role:'AE',status:'準備中',prio:'中',date:'2026-08-01',memo:'応募要件の確認が必要。',phase:'情報収集',quarter:'Q3',amount:'—',value:'認知度向上',efficiency:'中',contact:'—'},
+    {id:4,name:'AWS Startup Program',company:'Amazon Web Services',src:'accel',person:'佐藤',role:'SS',status:'完了',prio:'低',date:'2026-06-10',memo:'採択済み。クレジット付与待ち。',phase:'採択後',quarter:'Q2',amount:'クレジット$25K',value:'インフラ費削減',efficiency:'高',contact:'—'},
+    {id:5,name:'Google for Startups',company:'Google',src:'accel',person:'山田',role:'AE',status:'準備中',prio:'中',date:'2026-08-20',memo:'担当者へのコンタクト済み。',phase:'情報収集',quarter:'Q3',amount:'クレジット$200K',value:'技術支援',efficiency:'高',contact:'—'},
+    {id:6,name:'Salesforce Startup Program',company:'Salesforce',src:'accel',person:'鈴木',role:'SS',status:'応募中',prio:'高',date:'2026-07-05',memo:'SaaS系の強化に期待。早急に応募書類を完成させる。',phase:'書類選考',quarter:'Q3',amount:'CRMライセンス無償',value:'ツール活用',efficiency:'中',contact:'—'},
+
+    // 展示会
+    {id:7,name:'株式会社テックソリューション',company:'株式会社テックソリューション',src:'expo',person:'鈴木',role:'応対者',status:'フォロー中',prio:'高',date:'2026-06-20',memo:'DX推進に強い関心。来月デモ希望。',expoName:'Japan IT Week',industry:'IT・SaaS',needs:'業務効率化',budget:'500万〜',timing:'2026年Q3',decision:'あり',follow:'送付済み',contact:'—',name2:'山崎 健一',dept:'情報システム部',role2:'部長'},
+    {id:8,name:'合同会社フューチャーラボ',company:'合同会社フューチャーラボ',src:'expo',person:'田中',role:'引継担当',status:'アポ取得',prio:'高',date:'2026-06-20',memo:'CTO自らブースに来訪。興味高い。',expoName:'Japan IT Week',industry:'IT・SaaS',needs:'AI導入',budget:'〜100万',timing:'即時',decision:'あり',follow:'アポ取得',contact:'yamamoto@futurelab.example',name2:'山本 直樹',dept:'技術部',role2:'CTO'},
+    {id:9,name:'株式会社グローバルトレード',company:'株式会社グローバルトレード',src:'expo',person:'佐藤',role:'応対者',status:'返信待ち',prio:'中',date:'2026-06-21',memo:'海外展開に興味。英語対応が必要かも。',expoName:'Japan IT Week',industry:'商社・貿易',needs:'グローバル展開支援',budget:'未確認',timing:'未定',decision:'不明',follow:'送付済み',contact:'—',name2:'田辺 洋子',dept:'海外事業部',role2:'課長'},
+    {id:10,name:'有限会社スマートファクトリー',company:'有限会社スマートファクトリー',src:'expo',person:'山田',role:'応対者',status:'新規',prio:'低',date:'2026-06-21',memo:'製造業DX。名刺交換のみ。',expoName:'製造業展示会',industry:'製造業',needs:'IoT・設備管理',budget:'100〜500万',timing:'未定',decision:'なし',follow:'メール作成済み',contact:'—',name2:'中村 誠',dept:'生産管理部',role2:'担当'},
+    {id:11,name:'株式会社デジタルメディア',company:'株式会社デジタルメディア',src:'expo',person:'鈴木',role:'引継担当',status:'フォロー中',prio:'高',date:'2026-05-15',memo:'メール送付済み。返信まち。',expoName:'マーケティングEXPO',industry:'メディア',needs:'マーケオートメーション',budget:'100〜500万',timing:'2026年Q4',decision:'なし',follow:'返信あり',contact:'—',name2:'橋本 彩',dept:'マーケティング部',role2:'マネージャー'},
+    {id:12,name:'合同会社クリエイティブワークス',company:'合同会社クリエイティブワークス',src:'expo',person:'田中',role:'応対者',status:'アポ取得',prio:'中',date:'2026-05-16',memo:'デザイン業務の効率化に関心。',expoName:'マーケティングEXPO',industry:'クリエイティブ',needs:'コンテンツ制作支援',budget:'〜100万',timing:'2026年Q4',decision:'あり',follow:'アポ取得',contact:'info@creativeworks.example',name2:'松本 翔太',dept:'制作部',role2:'ディレクター'},
+
+    // イベント（担当者は一人で全件対応）
+    {id:13,name:'有限会社サクラテック',company:'有限会社サクラテック',src:'event',person:'佐藤',role:'担当',status:'対応済み',prio:'中',date:'2026-06-05',memo:'スタートアップ交流会で名刺交換。フォローメール送付済み。',contact:'info@sakuratech.example',name2:'吉田 真一',dept:'事業開発部',role2:'代表'},
+    {id:14,name:'株式会社イノベーションハブ',company:'株式会社イノベーションハブ',src:'event',person:'佐藤',role:'担当',status:'フォロー中',prio:'高',date:'2026-06-05',memo:'VCからの紹介。CTOと面識あり。継続フォロー中。',contact:'contact@ihub.example',name2:'木村 拓也',dept:'技術部',role2:'CTO'},
+    {id:15,name:'合同会社ビズパートナー',company:'合同会社ビズパートナー',src:'event',person:'佐藤',role:'担当',status:'新規',prio:'低',date:'2026-06-12',memo:'懇親会で名刺交換のみ。フォロー検討中。',contact:'—',name2:'井上 恵子',dept:'営業部',role2:'部長'},
+];
+
+// ━━ FILTER STATE ━━
+const F = {source:'all',prio:'all',status:'all',person:'all',expo:'all',industry:'all',follow:'all',decision:'all',budget:'all',phase:'all',quarter:'all',timing:'all'};
+
+function setF(key, btn){
+    F[key] = btn.dataset.v;
+    btn.closest('.fp, .fe-pills').querySelectorAll('.fb').forEach(b=>b.className='fb');
+    btn.className='fb on';
+    updateChips(); render();
+}
+
+function toggleExtra(){
+    const el=document.getElementById('filterExtra');
+    const ic=document.getElementById('extraIcon');
+    el.classList.toggle('open');
+    ic.textContent=el.classList.contains('open')?'−':'＋';
+}
+
+const fLabels={source:{accel:'🚀アクセラ',expo:'🎪展示会',event:'📅イベント'},prio:{高:'優先度:高',中:'優先度:中',低:'優先度:低'},status:'ステータス:',person:'担当者:',expo:'展示会:',industry:'業種:',follow:'フォロー:',decision:'決済権:',budget:'予算:',phase:'フェーズ:',quarter:'Quarter:',timing:'導入時期:'};
+
+function updateChips(){
+    const c=document.getElementById('activeChips');
+    let h='';
+    Object.entries(F).forEach(([k,v])=>{
+        if(v==='all') return;
+        const label = typeof fLabels[k]==='object' ? fLabels[k][v] : (fLabels[k]||k+':')+v;
+        h+=`<div class="af-chip">${label}<button onclick="clearF('${k}')">×</button></div>`;
+    });
+    c.innerHTML=h;
+}
+
+function clearF(key){
+    F[key]='all';
+    document.querySelectorAll(`[onclick="setF('${key}',this)"]`).forEach((b,i)=>{
+        b.className = i===0 ? 'fb on' : 'fb';
+    });
+    updateChips(); render();
+}
+
+// ━━ RENDER ━━
+let selId=null;
+const srcBadge={accel:'badge b-ac',expo:'badge b-ex',event:'badge b-ev'};
+const srcLabel={accel:'🚀 アクセラ',expo:'🎪 展示会',event:'📅 イベント'};
+const prioClass={高:'badge p-high',中:'badge p-mid',低:'badge p-low'};
+const stClass=(s)=>({
+    '応募中':'st s-act','フォロー中':'st s-act','審査中':'st s-rev',
+    'アポ取得':'st s-done','対応済み':'st s-done','完了':'st s-done',
+    '準備中':'st s-pen','返信待ち':'st s-wait',
+    '新規':'st s-new'
+}[s]||'st s-new');
+const avColor=['#2563EB','#7C3AED','#059669','#DC2626','#D97706'];
+const persons=['田中','鈴木','佐藤','山田'];
+
+function avStyle(name){ const i=persons.indexOf(name); return `background:${avColor[i]||avColor[0]}`; }
+
+function render(){
+    const q=document.getElementById('q').value.toLowerCase();
+    const rows=DATA.filter(r=>{
+        if(F.source!=='all'&&r.src!==F.source) return false;
+        if(F.prio!=='all'&&r.prio!==F.prio) return false;
+        if(F.status!=='all'&&r.status!==F.status) return false;
+        if(F.person!=='all'&&r.person!==F.person) return false;
+        if(F.expo!=='all'&&r.expoName!==F.expo) return false;
+        if(F.industry!=='all'&&r.industry!==F.industry) return false;
+        if(F.follow!=='all'&&r.follow!==F.follow) return false;
+        if(F.decision!=='all'&&r.decision!==F.decision) return false;
+        if(F.budget!=='all'&&r.budget!==F.budget) return false;
+        if(F.phase!=='all'&&r.phase!==F.phase) return false;
+        if(F.quarter!=='all'&&r.quarter!==F.quarter) return false;
+        if(F.timing!=='all'&&r.timing!==F.timing) return false;
+        if(q&&![r.name,r.company,r.person,r.name2||''].some(s=>s.toLowerCase().includes(q))) return false;
+        return true;
+    });
+    document.getElementById('cnt').textContent=rows.length;
+    document.getElementById('k0').innerHTML=DATA.length+'<small>件</small>';
+    document.getElementById('k1').innerHTML=DATA.filter(d=>d.src==='accel').length+'<small>件</small>';
+    document.getElementById('k2').innerHTML=DATA.filter(d=>d.src==='expo').length+'<small>件</small>';
+    document.getElementById('k3').innerHTML=DATA.filter(d=>d.src==='event').length+'<small>件</small>';
+    document.getElementById('k4').innerHTML=DATA.filter(d=>d.prio==='高').length+'<small>件</small>';
+
+    document.getElementById('tbody').innerHTML=rows.map(r=>`
+        <tr onclick="openP(${r.id})" class="${selId===r.id?'sel':''}">
+            <td><div class="c-main">${r.name}</div>${r.name!==r.company?`<div class="c-sub">${r.company}</div>`:''}</td>
+            <td><span class="${srcBadge[r.src]}">${srcLabel[r.src]}</span></td>
+            <td>${r.name2?`<div class="c-main" style="font-weight:500">${r.name2}</div><div class="c-sub">${r.role2||''} ${r.dept?'/ '+r.dept:''}</div>`:'<span style="color:var(--muted)">—</span>'}</td>
+            <td><div class="av-row"><div class="av" style="${avStyle(r.person)}">${r.person[0]}</div><div><div class="av-n">${r.person}</div><div class="av-r">${r.role}</div></div></div></td>
+            <td><span class="${stClass(r.status)}">${r.status}</span></td>
+            <td><span class="${prioClass[r.prio]}">${r.prio}</span></td>
+            <td><div style="font-size:.78rem">${r.phase||r.follow||'—'}</div></td>
+            <td><div style="font-size:.78rem">${r.date||'—'}</div></td>
+        </tr>
+    `).join('');
+}
+
+function openP(id){
+    const r=DATA.find(d=>d.id===id); if(!r) return;
+    selId=id; render();
+    document.getElementById('pt').textContent=r.name;
+    let h='';
+    h+=`<div class="p-sec"><div class="p-sec-t">基本情報</div>
+        <div class="p-row"><div class="p-k">ソース</div><div class="p-v">${srcLabel[r.src]}</div></div>
+        <div class="p-row"><div class="p-k">企業名</div><div class="p-v">${r.company}</div></div>
+        <div class="p-row"><div class="p-k">ステータス</div><div class="p-v"><span class="${stClass(r.status)}">${r.status}</span></div></div>
+        <div class="p-row"><div class="p-k">優先度</div><div class="p-v"><span class="${prioClass[r.prio]}">${r.prio}</span></div></div>
+        <div class="p-row"><div class="p-k">日付/〆切</div><div class="p-v">${r.date||'—'}</div></div>
+    </div>`;
+    if(r.name2){
+        h+=`<div class="p-sec"><div class="p-sec-t">担当者情報</div>
+            <div class="p-row"><div class="p-k">氏名</div><div class="p-v">${r.name2}</div></div>
+            <div class="p-row"><div class="p-k">役職</div><div class="p-v">${r.role2||'—'}</div></div>
+            <div class="p-row"><div class="p-k">部署</div><div class="p-v">${r.dept||'—'}</div></div>
+            <div class="p-row"><div class="p-k">メール</div><div class="p-v">${r.contact||'—'}</div></div>
+        </div>`;
+    }
+    h+=`<div class="p-sec"><div class="p-sec-t">社内担当</div>
+        <div class="p-row"><div class="p-k">担当者</div><div class="p-v"><div class="av-row"><div class="av" style="${avStyle(r.person)}">${r.person[0]}</div>${r.person}（${r.role}）</div></div></div>
+    </div>`;
+    if(r.src==='accel'){
+        h+=`<div class="p-sec"><div class="p-sec-t">アクセラ詳細</div>
+            <div class="p-row"><div class="p-k">フェーズ</div><div class="p-v">${r.phase||'—'}</div></div>
+            <div class="p-row"><div class="p-k">Quarter</div><div class="p-v">${r.quarter||'—'}</div></div>
+            <div class="p-row"><div class="p-k">金額支援</div><div class="p-v">${r.amount||'—'}</div></div>
+            <div class="p-row"><div class="p-k">提案価値</div><div class="p-v">${r.value||'—'}</div></div>
+            <div class="p-row"><div class="p-k">提案効率</div><div class="p-v">${r.efficiency||'—'}</div></div>
+        </div>`;
+    }
+    if(r.src==='expo'){
+        h+=`<div class="p-sec"><div class="p-sec-t">展示会詳細</div>
+            <div class="p-row"><div class="p-k">展示会名</div><div class="p-v">${r.expoName||'—'}</div></div>
+            <div class="p-row"><div class="p-k">業種</div><div class="p-v">${r.industry||'—'}</div></div>
+            <div class="p-row"><div class="p-k">ニーズ</div><div class="p-v">${r.needs||'—'}</div></div>
+            <div class="p-row"><div class="p-k">予算規模</div><div class="p-v">${r.budget||'—'}</div></div>
+            <div class="p-row"><div class="p-k">導入時期</div><div class="p-v">${r.timing||'—'}</div></div>
+            <div class="p-row"><div class="p-k">決済権</div><div class="p-v">${r.decision||'—'}</div></div>
+            <div class="p-row"><div class="p-k">フォロー</div><div class="p-v">${r.follow||'—'}</div></div>
+        </div>`;
+    }
+    h+=`<div class="p-sec"><div class="p-sec-t">メモ</div><div class="p-memo">${r.memo||'なし'}</div></div>`;
+    document.getElementById('pb').innerHTML=h;
+    document.getElementById('panel').classList.add('open');
+    document.getElementById('ov').classList.add('show');
+}
+
+function closeP(){
+    selId=null;
+    document.getElementById('panel').classList.remove('open');
+    document.getElementById('ov').classList.remove('show');
+    render();
+}
+
+render();
+</script>
+</body>
+</html>
