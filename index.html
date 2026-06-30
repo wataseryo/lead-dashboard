@@ -281,14 +281,17 @@ textarea.form-input{resize:vertical;min-height:72px;line-height:1.6;}
         <div class="fl">ステータス<div style="font-size:.58rem;color:var(--muted);font-weight:400;margin-top:1px;">複数選択可</div></div>
         <div class="fp" id="f-status">
             <button class="fb on" data-v="all" onclick="toggleStatus(this)">すべて</button>
+            <span style="color:var(--muted);font-size:.65rem;align-self:center;padding:0 4px;">展示会・イベント</span>
             <button class="fb" data-v="新規" onclick="toggleStatus(this)">新規</button>
             <button class="fb" data-v="フォロー中" onclick="toggleStatus(this)">フォロー中</button>
             <button class="fb" data-v="返信待ち" onclick="toggleStatus(this)">返信待ち</button>
             <button class="fb" data-v="アポ取得" onclick="toggleStatus(this)">アポ取得</button>
-            <button class="fb" data-v="応募中" onclick="toggleStatus(this)">応募中</button>
-            <button class="fb" data-v="審査中" onclick="toggleStatus(this)">審査中</button>
-            <button class="fb" data-v="準備中" onclick="toggleStatus(this)">準備中</button>
             <button class="fb" data-v="完了" onclick="toggleStatus(this)">完了</button>
+            <span style="color:var(--muted);font-size:.65rem;align-self:center;padding:0 4px;">アクセラ ステージ</span>
+            <button class="fb" data-v="リード" onclick="toggleStatus(this)">リード</button>
+            <button class="fb" data-v="接触済" onclick="toggleStatus(this)">接触済</button>
+            <button class="fb" data-v="提出済" onclick="toggleStatus(this)">提出済</button>
+            <button class="fb" data-v="商談化" onclick="toggleStatus(this)">商談化</button>
         </div>
     </div>
     <div class="filter-row">
@@ -457,8 +460,8 @@ textarea.form-input{resize:vertical;min-height:72px;line-height:1.6;}
                 <div class="chart-canvas-wrap"><canvas id="ch-accel-person"></canvas></div>
             </div>
             <div class="chart-card">
-                <div class="chart-card-title">案件分類（提案価値）</div>
-                <div class="chart-canvas-wrap"><canvas id="ch-accel-value"></canvas></div>
+                <div class="chart-card-title">ステージ分布</div>
+                <div class="chart-canvas-wrap"><canvas id="ch-accel-stage"></canvas></div>
             </div>
         </div>
     </div>
@@ -709,6 +712,15 @@ textarea.form-input{resize:vertical;min-height:72px;line-height:1.6;}
             <div class="form-sec">アクセラ詳細</div>
             <div class="form-grid">
                 <div class="form-group">
+                    <label class="form-label">ステージ<span>*</span></label>
+                    <select class="form-input" id="af-stage">
+                        <option value="リード">リード</option>
+                        <option value="接触済">接触済</option>
+                        <option value="提出済">提出済</option>
+                        <option value="商談化">商談化</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label class="form-label">フェーズ</label>
                     <select class="form-input" id="af-phase">
                         <option value="情報収集">情報収集</option>
@@ -903,12 +915,12 @@ textarea.form-input{resize:vertical;min-height:72px;line-height:1.6;}
 // ━━ DATA ━━
 const DATA = [
     // アクセラ
-    {id:1,name:'IPA 未踏アドバンスト2026',company:'IPA（情報処理推進機構）',src:'accel',person:'田中',role:'AE',status:'応募中',prio:'高',date:'2026-07-15',memo:'提案資料の最終確認が必要。早期〆切に注意。',phase:'書類選考',quarter:'Q3',amount:'最大500万円',value:'技術認定＋資金',efficiency:'高',contact:'—'},
-    {id:2,name:'NEDO スタートアップ支援',company:'NEDO',src:'accel',person:'鈴木',role:'SM',status:'審査中',prio:'高',date:'2026-07-20',memo:'ヒアリング日程調整中。',phase:'一次審査',quarter:'Q3',amount:'最大1,000万円',value:'資金＋広報',efficiency:'高',contact:'—'},
-    {id:3,name:'J-Startup 認定プログラム',company:'経済産業省',src:'accel',person:'田中',role:'AE',status:'準備中',prio:'中',date:'2026-08-01',memo:'応募要件の確認が必要。',phase:'情報収集',quarter:'Q3',amount:'—',value:'認知度向上',efficiency:'中',contact:'—'},
-    {id:4,name:'AWS Startup Program',company:'Amazon Web Services',src:'accel',person:'佐藤',role:'SS',status:'完了',prio:'低',date:'2026-06-10',memo:'採択済み。クレジット付与待ち。',phase:'採択後',quarter:'Q2',amount:'クレジット$25K',value:'インフラ費削減',efficiency:'高',contact:'—'},
-    {id:5,name:'Google for Startups',company:'Google',src:'accel',person:'山田',role:'AE',status:'準備中',prio:'中',date:'2026-08-20',memo:'担当者へのコンタクト済み。',phase:'情報収集',quarter:'Q3',amount:'クレジット$200K',value:'技術支援',efficiency:'高',contact:'—'},
-    {id:6,name:'Salesforce Startup Program',company:'Salesforce',src:'accel',person:'鈴木',role:'SS',status:'応募中',prio:'高',date:'2026-07-05',memo:'SaaS系の強化に期待。早急に応募書類を完成させる。',phase:'書類選考',quarter:'Q3',amount:'CRMライセンス無償',value:'ツール活用',efficiency:'中',contact:'—'},
+    {id:1,name:'IPA 未踏アドバンスト2026',company:'IPA（情報処理推進機構）',src:'accel',person:'田中',role:'AE',status:'応募中',stage:'提出済',prio:'高',date:'2026-07-15',memo:'提案資料の最終確認が必要。早期〆切に注意。',phase:'書類選考',quarter:'Q3',amount:'最大500万円',value:'技術認定＋資金',efficiency:'高',contact:'—'},
+    {id:2,name:'NEDO スタートアップ支援',company:'NEDO',src:'accel',person:'鈴木',role:'SM',status:'審査中',stage:'商談化',prio:'高',date:'2026-07-20',memo:'ヒアリング日程調整中。',phase:'一次審査',quarter:'Q3',amount:'最大1,000万円',value:'資金＋広報',efficiency:'高',contact:'—'},
+    {id:3,name:'J-Startup 認定プログラム',company:'経済産業省',src:'accel',person:'田中',role:'AE',status:'準備中',stage:'接触済',prio:'中',date:'2026-08-01',memo:'応募要件の確認が必要。',phase:'情報収集',quarter:'Q3',amount:'—',value:'認知度向上',efficiency:'中',contact:'—'},
+    {id:4,name:'AWS Startup Program',company:'Amazon Web Services',src:'accel',person:'佐藤',role:'SS',status:'完了',stage:'商談化',prio:'低',date:'2026-06-10',memo:'採択済み。クレジット付与待ち。',phase:'採択後',quarter:'Q2',amount:'クレジット$25K',value:'インフラ費削減',efficiency:'高',contact:'—'},
+    {id:5,name:'Google for Startups',company:'Google',src:'accel',person:'山田',role:'AE',status:'準備中',stage:'リード',prio:'中',date:'2026-08-20',memo:'担当者へのコンタクト済み。',phase:'情報収集',quarter:'Q3',amount:'クレジット$200K',value:'技術支援',efficiency:'高',contact:'—'},
+    {id:6,name:'Salesforce Startup Program',company:'Salesforce',src:'accel',person:'鈴木',role:'SS',status:'応募中',stage:'接触済',prio:'高',date:'2026-07-05',memo:'SaaS系の強化に期待。早急に応募書類を完成させる。',phase:'書類選考',quarter:'Q3',amount:'CRMライセンス無償',value:'ツール活用',efficiency:'中',contact:'—'},
 
     // 展示会
     {id:7,name:'株式会社テックソリューション',company:'株式会社テックソリューション',src:'expo',person:'鈴木',role:'応対者',status:'フォロー中',prio:'高',date:'2026-06-20',memo:'DX推進に強い関心。来月デモ希望。',expoName:'Japan IT Week',industry:'IT・SaaS',needs:'業務効率化',budget:'500万〜',timing:'2026年Q3',decision:'あり',follow:'送付済み',contact:'—',name2:'山崎 健一',dept:'情報システム部',role2:'部長'},
@@ -997,8 +1009,8 @@ const prioClass={高:'badge p-high',中:'badge p-mid',低:'badge p-low'};
 const stClass=(s)=>({
     '応募中':'st s-act','フォロー中':'st s-act','審査中':'st s-rev',
     'アポ取得':'st s-done','対応済み':'st s-done','完了':'st s-done',
-    '準備中':'st s-pen','返信待ち':'st s-wait',
-    '新規':'st s-new'
+    '準備中':'st s-pen','返信待ち':'st s-wait','新規':'st s-new',
+    'リード':'st s-new','接触済':'st s-pen','提出済':'st s-rev','商談化':'st s-done'
 }[s]||'st s-new');
 const avColor=['#2563EB','#7C3AED','#059669','#DC2626','#D97706'];
 const persons=['田中','鈴木','佐藤','山田'];
@@ -1010,7 +1022,7 @@ function render(){
     const rows=DATA.filter(r=>{
         if(F.source!=='all'&&r.src!==F.source) return false;
         if(F.prio!=='all'&&r.prio!==F.prio) return false;
-        if(F.status.length>0&&!F.status.includes(r.status)) return false;
+        if(F.status.length>0){const sv=r.src==='accel'?r.stage:r.status;if(!F.status.includes(sv)) return false;}
         if(F.person!=='all'&&r.person!==F.person) return false;
         if(F.expo!=='all'&&r.expoName!==F.expo) return false;
         if(F.industry!=='all'&&r.industry!==F.industry) return false;
@@ -1036,7 +1048,7 @@ function render(){
             <td><span class="${srcBadge[r.src]}">${srcLabel[r.src]}</span></td>
             <td>${r.name2?`<div class="c-main" style="font-weight:500">${r.name2}</div><div class="c-sub">${r.role2||''} ${r.dept?'/ '+r.dept:''}</div>`:'<span style="color:var(--muted)">—</span>'}</td>
             <td><div class="av-row"><div class="av" style="${avStyle(r.person)}">${r.person[0]}</div><div><div class="av-n">${r.person}</div><div class="av-r">${r.role}</div></div></div></td>
-            <td><span class="${stClass(r.status)}">${r.status}</span></td>
+            <td>${r.src==='accel'?`<span class="${stClass(r.stage)}">${r.stage||'—'}</span><div class="c-sub" style="margin-top:2px">${r.status}</div>`:`<span class="${stClass(r.status)}">${r.status}</span>`}</td>
             <td><span class="${prioClass[r.prio]}">${r.prio}</span></td>
             <td><div style="font-size:.78rem">${r.phase||r.follow||'—'}</div></td>
             <td><div style="font-size:.78rem">${r.date||'—'}</div></td>
@@ -1052,6 +1064,7 @@ function openP(id){
     h+=`<div class="p-sec"><div class="p-sec-t">基本情報</div>
         <div class="p-row"><div class="p-k">ソース</div><div class="p-v">${srcLabel[r.src]}</div></div>
         <div class="p-row"><div class="p-k">企業名</div><div class="p-v">${r.company}</div></div>
+        ${r.src==='accel'?`<div class="p-row"><div class="p-k">ステージ</div><div class="p-v"><span class="${stClass(r.stage)}">${r.stage||'—'}</span></div></div>`:''}
         <div class="p-row"><div class="p-k">ステータス</div><div class="p-v"><span class="${stClass(r.status)}">${r.status}</span></div></div>
         <div class="p-row"><div class="p-k">優先度</div><div class="p-v"><span class="${prioClass[r.prio]}">${r.prio}</span></div></div>
         <div class="p-row"><div class="p-k">日付/〆切</div><div class="p-v">${r.date||'—'}</div></div>
@@ -1069,6 +1082,7 @@ function openP(id){
     </div>`;
     if(r.src==='accel'){
         h+=`<div class="p-sec"><div class="p-sec-t">アクセラ詳細</div>
+            <div class="p-row"><div class="p-k">ステージ</div><div class="p-v"><span class="${stClass(r.stage)}">${r.stage||'—'}</span></div></div>
             <div class="p-row"><div class="p-k">フェーズ</div><div class="p-v">${r.phase||'—'}</div></div>
             <div class="p-row"><div class="p-k">Quarter</div><div class="p-v">${r.quarter||'—'}</div></div>
             <div class="p-row"><div class="p-k">金額支援</div><div class="p-v">${r.amount||'—'}</div></div>
@@ -1219,11 +1233,14 @@ function initAccelCharts(){
         options: COMMON_BAR_OPTS('x')
     });
 
-    // Chart 4: 案件分類 / 提案価値 (pie)
-    new Chart(document.getElementById('ch-accel-value'), {
-        type:'pie',
-        data: makePieData(countBy(ac,'value')),
-        options: COMMON_PIE_OPTS
+    // Chart 4: ステージ分布 (horizontal bar) — リード→接触済→提出済→商談化の順で表示
+    const stageOrder = ['リード','接触済','提出済','商談化'];
+    const stageMap = {};
+    stageOrder.forEach(s=>{ stageMap[s] = ac.filter(d=>d.stage===s).length; });
+    new Chart(document.getElementById('ch-accel-stage'), {
+        type:'bar',
+        data: makeBarData(stageMap,'#2563EB'),
+        options: COMMON_BAR_OPTS('y')
     });
 }
 
@@ -1423,6 +1440,7 @@ function openEditModal(){
 
     // ソース別フィールド
     if(r.src==='accel'){
+        document.getElementById('af-stage').value      = r.stage || 'リード';
         document.getElementById('af-phase').value      = r.phase || '情報収集';
         document.getElementById('af-quarter').value    = r.quarter || 'Q3';
         document.getElementById('af-amount').value     = (r.amount&&r.amount!=='—') ? r.amount : '';
@@ -1553,6 +1571,7 @@ function submitAddForm(){
 
     if(addSrc==='accel'){
         Object.assign(base, {
+            stage:      document.getElementById('af-stage').value,
             phase:      document.getElementById('af-phase').value,
             quarter:    document.getElementById('af-quarter').value,
             amount:     document.getElementById('af-amount').value.trim() || '—',
