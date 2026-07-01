@@ -980,12 +980,12 @@ function updateChips(){
     let h='';
     Object.entries(F).forEach(([k,v])=>{
         if(k==='status'){
-            v.forEach(s=>{ h+=`<div class="af-chip">ステータス:${s}<button onclick="clearOneStatus('${s}')">×</button></div>`; });
+            v.forEach(s=>{ h+=`<div class="af-chip">ステータス:${esc(s)}<button onclick="clearOneStatus('${esc(s)}')">×</button></div>`; });
             return;
         }
         if(v==='all') return;
         const label = typeof fLabels[k]==='object' ? fLabels[k][v] : (fLabels[k]||k+':')+v;
-        h+=`<div class="af-chip">${label}<button onclick="clearF('${k}')">×</button></div>`;
+        h+=`<div class="af-chip">${esc(label)}<button onclick="clearF('${esc(k)}')">×</button></div>`;
     });
     c.innerHTML=h;
 }
@@ -1137,8 +1137,8 @@ function openP(id){
     }
     if(r.src==='event' && r.cardImage){
         h+=`<div class="p-sec"><div class="p-sec-t">名刺画像</div>
-            <div class="card-img-panel" onclick="openLightbox('${r.cardImage}')">
-                <img src="${r.cardImage}" alt="名刺">
+            <div class="card-img-panel" onclick="openLightbox('${esc(r.cardImage)}')">
+                <img src="${esc(r.cardImage)}" alt="名刺">
             </div>
             <div style="font-size:.65rem;color:var(--muted);margin-top:5px;text-align:center;">クリックで拡大</div>
         </div>`;
